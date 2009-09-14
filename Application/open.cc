@@ -6,7 +6,7 @@ void Application::open(string const &filename)
 	
 	if (!FileSystem::fileExists(filename))
 	{
-		error("Database file does not exist: " + filename);
+		error("<b>Database file does not exist</b>", "The file '<i>" + filename + "</i>' does not exist. Please make sure you open a valid optimization results database.");
 		return;
 	}
 	
@@ -14,7 +14,7 @@ void Application::open(string const &filename)
 	
 	if (!d_database)
 	{
-		error("Database could not be opened: " + filename);
+		error("<b>Database could not be opened</b>", "The file '<i>" + filename + "</i>' could not be opened. Please make sure the file is a valid optimization results database.");
 		return;
 	}
 	

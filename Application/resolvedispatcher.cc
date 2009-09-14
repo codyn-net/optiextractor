@@ -8,7 +8,6 @@ string Application::resolveDispatcher()
 	if (row.done())
 	{
 		// No dispatcher found
-		error("Could not find dispatcher in database, hmm...");
 		return "";
 	}
 	

@@ -5,6 +5,7 @@ void Application::runSolution()
 	d_runner.cancel();
 
 	d_lastResponse = Response();
+	d_lastResponse.set_status(Response::Failed);
 	d_lastResponse.mutable_failure()->set_type(Response::Failure::NoResponse);
 		
 	// Create dispatch request
@@ -108,20 +109,25 @@ void Application::runSolution()
 	if (dispatcher == "")
 	{
 		/* Ask user for custom path */
-		Gtk::FileChooserDialog *dialog = new Gtk::FileChooserDialog("Find Dispatcher");
+		Gtk::Dialog *dialog;
 		
+		d_builder->get_widget("dialog_dispatcher", dialog);
+		
+		Glib::RefPtr<Gtk::FileChooser> chooser = get<Gtk::FileChooser>("file_chooser_button_dispatcher");
+		dialog->set_transient_for(window());
+	
 		if (d_overrideDispatcher != "")
 		{
-			dialog->set_filename(d_overrideDispatcher);
+			chooser->set_filename(d_overrideDispatcher);
 		}
 
-		if (dialog->run() == Gtk::RESPONSE_ACCEPT)
+		if (dialog->run() == Gtk::RESPONSE_OK)
 		{
-			dispatcher = dialog->get_filename();
+			dispatcher = chooser->get_filename();
 			d_overrideDispatcher = dispatcher;
 		}
-		
-		delete dialog;
+
+		dialog->hide();
 	}
 	
 	if (dispatcher != "")

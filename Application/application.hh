@@ -38,7 +38,7 @@ class Application : public Gtk::Window
 	private:
 		/* Private functions */
 		void initializeUI();
-		void error(std::string const &error);
+		void error(std::string const &error, std::string const &secondary = "");
 	
 		void fill();
 		
