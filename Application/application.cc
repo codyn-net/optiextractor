@@ -7,4 +7,6 @@ Application::Application()
 {
 	d_runner.onState.add(*this, &Application::runnerState);
 	d_runner.onResponse.add(*this, &Application::runnerResponse);
+	
+	window().set_default_icon_name(Gtk::Stock::EXECUTE.id);
 }
