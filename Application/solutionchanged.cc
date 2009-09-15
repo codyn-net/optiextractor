@@ -9,7 +9,7 @@ void Application::solutionChanged()
 	Glib::RefPtr<Gtk::ListStore> store = get<Gtk::ListStore>("list_store_solutions");
 	store->clear();
 	
-	if (!d_window->sensitive())
+	if (!get<Gtk::Notebook>("notebook")->sensitive())
 	{
 		return;
 	}

@@ -57,5 +57,5 @@ void Application::initializeUI()
 
 	get<Gtk::CellRendererText>("cell_renderer_text_override_value")->signal_edited().connect(sigc::mem_fun(*this, &Application::overrideValueEdited));
 
-	d_window->set_sensitive(false);
+	clear();
 }

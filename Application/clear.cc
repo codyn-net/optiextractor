@@ -2,7 +2,7 @@
 
 void Application::clear()
 {
-	window().set_sensitive(false);
+	get<Gtk::Notebook>("notebook")->set_sensitive(false);
 
 	get<Gtk::Range>("hscale_solution")->set_value(0);
 	get<Gtk::Range>("hscale_iteration")->set_value(0);
