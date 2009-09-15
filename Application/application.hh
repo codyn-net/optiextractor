@@ -16,7 +16,11 @@ class Application : public Gtk::Window
 	Gtk::MessageDialog *d_dialog;
 	std::map<std::string, std::string> d_parameterMap;
 	
-	Glib::RefPtr<Gtk::ListStore> d_listStoreSettings;
+	Glib::RefPtr<Gtk::UIManager> d_uiManager;
+	Glib::RefPtr<Gtk::ActionGroup> d_actionGroup;
+	
+	Gtk::FileChooserDialog *d_openDialog;
+	
 	Runner d_runner;
 	optimization::messages::worker::Response d_lastResponse;
 	std::string d_overrideDispatcher;
@@ -74,6 +78,13 @@ class Application : public Gtk::Window
 		void overrideValueEdited(Glib::ustring const &path, Glib::ustring const &newtext);
 		
 		std::string formatDate(size_t timestamp, std::string const &format = "%d-%m, %R") const;
+		
+		void onFileOpen();
+		void onFileExport();
+		void onFileClose();
+		void onFileQuit();
+		
+		void openResponse(int response);
 };
 
 template <typename T>

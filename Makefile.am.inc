@@ -16,46 +16,51 @@ optiextractor_CFLAGS = D_GNU_SOURCE -g $(PACKAGE_OPTIEXTRACTOR_CFLAGS)
 optiextractor_LDFLAGS = $(PACKAGE_OPTIEXTRACTOR_LIBS)
 optiextractor_SOURCES = \
 	optiextractor.cc \
-	Runner/runner.cc \
-	Runner/writetask.cc \
-	Runner/ondispatchdata.cc \
-	Runner/run.cc \
-	Runner/cancel.cc \
-	Runner/dispatchclose.cc \
-	Runner/ondispatchedkilled.cc \
-	Runner/onerrordata.cc \
-	Application/fillkeyvalue1.cc \
-	Application/handlerunnerstarted.cc \
-	Application/fillkeyvalue2.cc \
-	Application/overrideadd.cc \
-	Application/open.cc \
-	Application/fillboundaries.cc \
+	Application/onfileclose.cc \
 	Application/resolvedispatcher.cc \
-	Application/filllog.cc \
-	Application/handlerunnerstopped.cc \
-	Application/scan2.cc \
-	Application/runnerstate.cc \
-	Application/executeclicked.cc \
-	Application/destroydialog.cc \
-	Application/overrideremove.cc \
-	Application/fill.cc \
-	Application/application.cc \
-	Application/initializeui.cc \
-	Application/error.cc \
 	Application/scan1.cc \
+	Application/destroydialog.cc \
+	Application/onfileopen.cc \
+	Application/onfilequit.cc \
+	Application/fillkeyvalue2.cc \
 	Application/formatdate.cc \
-	Application/runsolution.cc \
+	Application/open.cc \
+	Application/application.cc \
+	Application/handlerunnerstarted.cc \
+	Application/executeclicked.cc \
+	Application/window.cc \
 	Application/overridenameedited.cc \
 	Application/clear.cc \
-	Application/window.cc \
+	Application/openresponse.cc \
 	Application/overridevalueedited.cc \
+	Application/filllog.cc \
+	Application/fill.cc \
+	Application/overrideremove.cc \
+	Application/fillkeyvalue1.cc \
+	Application/error.cc \
+	Application/runnerstate.cc \
+	Application/runsolution.cc \
 	Application/runnerresponse.cc \
-	Application/solutionchanged.cc
+	Application/initializeui.cc \
+	Application/overrideadd.cc \
+	Application/fillboundaries.cc \
+	Application/scan2.cc \
+	Application/solutionchanged.cc \
+	Application/handlerunnerstopped.cc \
+	Application/onfileexport.cc \
+	Runner/ondispatchdata.cc \
+	Runner/run.cc \
+	Runner/dispatchclose.cc \
+	Runner/ondispatchedkilled.cc \
+	Runner/cancel.cc \
+	Runner/onerrordata.cc \
+	Runner/writetask.cc \
+	Runner/runner.cc
 
 noinst_HEADERS = \
-	Runner/runner.hh \
-	Runner/runner.ih \
+	Application/application.ih \
 	Application/application.hh \
-	Application/application.ih
+	Runner/runner.hh \
+	Runner/runner.ih
 
 EXTRA_DIST = $(noinst_HEADERS)

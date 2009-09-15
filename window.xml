@@ -75,7 +75,7 @@
     <property name="default_height">600</property>
     <property name="icon_name">system-run</property>
     <child>
-      <object class="GtkVBox" id="vbox">
+      <object class="GtkVBox" id="vbox_main">
         <property name="visible">True</property>
         <property name="orientation">vertical</property>
         <child>
@@ -1027,6 +1027,7 @@ settings:</property>
             </child>
           </object>
           <packing>
+            <property name="pack_type">end</property>
             <property name="position">0</property>
           </packing>
         </child>

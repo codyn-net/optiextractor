@@ -2,12 +2,12 @@
 
 void Application::fill()
 {
-	d_window->set_sensitive(true);
-
 	if (!d_database)
 	{
 		return;
 	}
+
+	d_window->set_sensitive(true);
 	
 	get<Gtk::Label>("label_summary_optimizer")->set_text(d_database.query("SELECT `value` FROM  settings WHERE `name` = 'optimizer'").get<string>(0));
 

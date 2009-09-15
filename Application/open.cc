@@ -17,6 +17,15 @@ void Application::open(string const &filename)
 		error("<b>Database could not be opened</b>", "The file '<i>" + filename + "</i>' could not be opened. Please make sure the file is a valid optimization results database.");
 		return;
 	}
+
+	/* do a test query */
+	Row row = d_database.query("PRAGMA table_info(settings)");
+
+	if (!d_database.query("PRAGMA quick_check") || (!row || row.done()))
+	{
+		error("<b>Database could not be opened</b>", "The file '<i>" + filename + "</i>' could not be opened. Please make sure the file is a valid optimization results database.");
+		return;
+	}
 	
 	/* Do something here */
 	fill();
