@@ -1,0 +1,19 @@
+Source: optiextractor
+Priority: extra
+Maintainer: Jesse van den Kieboom <jesse.vandenkieboom@epfl.ch>
+Build-Depends: debhelper (>= 7), 
+               autotools-dev, 
+               cdbs, 
+               pkg-config,
+               liboptimization-dev,
+               libgtkmm-2.4-dev >= 2.12
+Standards-Version: 3.8.0
+Section: apps
+Homepage: http://birg.epfl.ch
+
+Package: optiextractor
+Section: apps
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Optimization solution extractor
+ Solution extractor for optimization results
