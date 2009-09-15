@@ -17,7 +17,7 @@ AC_CONFIG_HEADERS(config.h)
 AM_MAINTAINER_MODE
 
 PKG_CHECK_MODULES(PACKAGE_OPTIEXTRACTOR, [
-	gtkmm-2.4
+	gtkmm-2.4 >= 2.12
 	libjessevdk-0.1
 	liboptimization-0.1
 ])
