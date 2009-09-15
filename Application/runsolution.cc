@@ -25,7 +25,7 @@ void Application::runSolution()
 		string value;
 		
 		r.get_value(0, name);
-		r.get_value(0, value);
+		r.get_value(1, value);
 		
 		/* Check boundaries */
 		std::map<std::string, std::string>::iterator fnd = d_parameterMap.find(name);
