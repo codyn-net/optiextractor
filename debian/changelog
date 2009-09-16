@@ -1,3 +1,9 @@
+optiextractor (0.1.1-1) UNRELEASED; urgency=low
+
+  * New upstream release (0.1.1) 
+
+ -- Jesse van den Kieboom <jvanden@grijpc10.epfl.ch>  Tue, 15 Sep 2009 17:20:13 +0200
+
 optiextractor (0.1-1) UNRELEASED; urgency=low
 
   * Initial release

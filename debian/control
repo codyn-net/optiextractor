@@ -6,7 +6,7 @@ Build-Depends: debhelper (>= 7),
                cdbs, 
                pkg-config,
                liboptimization-dev,
-               libgtkmm-2.4-dev >= 2.12
+               libgtkmm-2.4-dev (>= 2.12)
 Standards-Version: 3.8.0
 Section: apps
 Homepage: http://birg.epfl.ch
