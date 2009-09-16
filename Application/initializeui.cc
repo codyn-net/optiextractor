@@ -17,12 +17,16 @@ void Application::initializeUI()
 	d_actionGroup->add(Gtk::Action::create("FileMenuAction", "_File"));
 	d_actionGroup->add(Gtk::Action::create("FileOpenAction", Gtk::Stock::OPEN), 
 	                   sigc::mem_fun(*this, &Application::onFileOpen));
-	d_actionGroup->add(Gtk::Action::create("FileExportAction", "_Export"),
-	                   sigc::mem_fun(*this, &Application::onFileExport));
 	d_actionGroup->add(Gtk::Action::create("FileCloseAction", Gtk::Stock::CLOSE),
 	                   sigc::mem_fun(*this, &Application::onFileClose));
 	d_actionGroup->add(Gtk::Action::create("FileQuitAction", Gtk::Stock::QUIT),
 	                   sigc::mem_fun(*this, &Application::onFileQuit));
+
+	d_actionGroup->add(Gtk::Action::create("DatabaseMenuAction", "_Database"));
+	d_actionGroup->add(Gtk::Action::create("DatabaseExportAction", "_Export"),
+	                   sigc::mem_fun(*this, &Application::onDatabaseExport));
+	d_actionGroup->add(Gtk::Action::create("DatabaseOptimizeAction", "_Optimize"),
+	                   sigc::mem_fun(*this, &Application::onDatabaseOptimize));
 	
 	d_uiManager->insert_action_group(d_actionGroup);
 
@@ -33,9 +37,14 @@ void Application::initializeUI()
 	"  <menubar name='MenuBar'>"
 	"    <menu name='FileMenu' action='FileMenuAction'>"
 	"      <menuitem name='FileOpen' action='FileOpenAction'/>"
-	"      <menuitem name='FileExport' action='FileExportAction'/>"
+	"      <separator/>"
 	"      <menuitem name='FileClose' action='FileCloseAction'/>"
 	"      <menuitem name='FileQuit' action='FileQuitAction'/>"
+	"    </menu>"
+	"    <menu name='DatabaseMenu' action='DatabaseMenuAction'>"
+	"      <menuitem name='DatabaseExport' action='DatabaseExportAction'/>"
+	"      <separator/>"
+	"      <menuitem name='DatabaseOptimize' action='DatabaseOptimizeAction'/>"
 	"    </menu>"
 	"  </menubar>"
 	"</ui>";
