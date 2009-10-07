@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <interface>
-  <requires lib="gtk+" version="2.12"/>
+  <!-- interface-requires gtk+ 2.12 -->
   <!-- interface-naming-policy project-wide -->
   <object class="GtkListStore" id="list_store_settings">
     <columns>
@@ -86,6 +86,7 @@
               <object class="GtkVBox" id="vbox_summary">
                 <property name="visible">True</property>
                 <property name="border_width">6</property>
+                <property name="orientation">vertical</property>
                 <property name="spacing">12</property>
                 <child>
                   <object class="GtkTable" id="table3">
@@ -396,6 +397,7 @@
               <object class="GtkVBox" id="vbox_parameters">
                 <property name="visible">True</property>
                 <property name="border_width">6</property>
+                <property name="orientation">vertical</property>
                 <property name="spacing">12</property>
                 <child>
                   <object class="GtkFrame" id="frame_boundaries">
@@ -562,6 +564,7 @@
               <object class="GtkVBox" id="vbox1">
                 <property name="visible">True</property>
                 <property name="border_width">12</property>
+                <property name="orientation">vertical</property>
                 <property name="spacing">6</property>
                 <child>
                   <object class="GtkTable" id="table1">
@@ -719,6 +722,7 @@
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="model">list_store_solutions</property>
+                            <property name="headers_clickable">False</property>
                             <property name="rules_hint">True</property>
                             <property name="search_column">0</property>
                             <child>
@@ -796,6 +800,7 @@ settings:</property>
                     <child>
                       <object class="GtkVBox" id="vbox2">
                         <property name="visible">True</property>
+                        <property name="orientation">vertical</property>
                         <property name="spacing">3</property>
                         <child>
                           <object class="GtkScrolledWindow" id="scrolledwindow2">
@@ -949,6 +954,7 @@ settings:</property>
               <object class="GtkVBox" id="vbox3">
                 <property name="visible">True</property>
                 <property name="border_width">12</property>
+                <property name="orientation">vertical</property>
                 <child>
                   <object class="GtkScrolledWindow" id="scrolledwindow3">
                     <property name="visible">True</property>
@@ -961,8 +967,10 @@ settings:</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="model">list_store_log</property>
+                        <property name="headers_clickable">False</property>
                         <property name="reorderable">True</property>
                         <property name="rules_hint">True</property>
+                        <property name="search_column">0</property>
                         <child>
                           <object class="GtkTreeViewColumn" id="treeviewcolumn16">
                             <property name="title">Time</property>

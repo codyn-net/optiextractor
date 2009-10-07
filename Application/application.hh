@@ -52,6 +52,7 @@ class Application : public Gtk::Window
 		
 		void fillBoundaries();
 		void fillLog();
+		void fillOverrides();
 
 		void clear();
 		
@@ -80,9 +81,11 @@ class Application : public Gtk::Window
 		std::string formatDate(size_t timestamp, std::string const &format = "%d-%m, %R") const;
 		
 		void onFileOpen();
-		void onFileExport();
 		void onFileClose();
 		void onFileQuit();
+
+		void onDatabaseExport();
+		void onDatabaseOptimize();
 		
 		void openResponse(int response);
 };

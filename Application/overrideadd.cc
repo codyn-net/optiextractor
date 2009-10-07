@@ -15,4 +15,7 @@ void Application::overrideAdd()
 	
 	tv->scroll_to_cell(path, *tv->get_column(0), 0.5, 0.5);
 	tv->set_cursor(path, *tv->get_column(0), true);
+	
+	d_database.query("DELETE FROM `optiextractor_overrides` WHERE `name` = 'key'");
+	d_database.query("INSERT INTO `optiextractor_overrides` (`name`, `value`) VALUES ('key', 'value')");
 }

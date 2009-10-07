@@ -18,7 +18,7 @@ void Application::open(string const &filename)
 		return;
 	}
 
-	/* do a test query */
+	// Do a quick test query
 	Row row = d_database.query("PRAGMA table_info(settings)");
 
 	if (!d_database.query("PRAGMA quick_check") || (!row || row.done()))
@@ -27,6 +27,13 @@ void Application::open(string const &filename)
 		return;
 	}
 	
-	/* Do something here */
+	// Make sure to create the optiextractor_override table to store overrides
+	row = d_database.query("PRAGMA table_info(optiextractor_overrides)");
+
+	if (!row || row.done())
+	{
+		d_database.query("CREATE TABLE `optiextractor_overrides` (`name` TEXT, `value` TEXT)");
+	}
+	
 	fill();
 }

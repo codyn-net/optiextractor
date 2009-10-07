@@ -12,6 +12,13 @@ void Application::overrideRemove()
 		return;
 	}
 	
+	string name;
+	iter->get_value(0, name);
+	
+	d_database.query() << "DELETE FROM optiextractor_overrides WHERE `name` = '" 
+	                   << SQLite::serialize(name) << "'"
+	                   << SQLite::Query::End();
+	
 	iter = store->erase(iter);
 		
 	if (iter)

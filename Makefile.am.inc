@@ -20,6 +20,7 @@ optiextractor_SOURCES = \
 	Application/resolvedispatcher.cc \
 	Application/scan1.cc \
 	Application/destroydialog.cc \
+	Application/ondatabaseoptimize.cc \
 	Application/onfileopen.cc \
 	Application/onfilequit.cc \
 	Application/fillkeyvalue2.cc \
@@ -29,6 +30,7 @@ optiextractor_SOURCES = \
 	Application/handlerunnerstarted.cc \
 	Application/executeclicked.cc \
 	Application/window.cc \
+	Application/filloverrides.cc \
 	Application/overridenameedited.cc \
 	Application/clear.cc \
 	Application/openresponse.cc \
@@ -47,7 +49,7 @@ optiextractor_SOURCES = \
 	Application/scan2.cc \
 	Application/solutionchanged.cc \
 	Application/handlerunnerstopped.cc \
-	Application/onfileexport.cc \
+	Application/ondatabaseexport.cc \
 	Runner/ondispatchdata.cc \
 	Runner/run.cc \
 	Runner/dispatchclose.cc \

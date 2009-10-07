@@ -17,7 +17,7 @@ void Application::runSolution()
 	Glib::RefPtr<Gtk::ListStore> store = get<Gtk::ListStore>("list_store_solutions");
 	Gtk::TreeModel::iterator iter;
 	
-	/* Set parameters */
+	// Set parameters
 	for (iter = store->children().begin(); iter != store->children().end(); ++iter)
 	{
 		Gtk::TreeRow r = *iter;
@@ -33,7 +33,7 @@ void Application::runSolution()
 		
 		if (fnd != d_parameterMap.end())
 		{
-			Row row = d_database.query("SELECT `min`, `max` FROM boundaries WHERE `name` = '" + fnd->second + "'");
+			Row row = d_database.query("SELECT `min`, `max` FROM boundaries WHERE `name` = '" + SQLite::serialize(fnd->second) + "'");
 			
 			if (!row.done())
 			{
