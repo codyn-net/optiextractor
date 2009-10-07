@@ -52,6 +52,7 @@ class Application : public Gtk::Window
 		
 		void fillBoundaries();
 		void fillLog();
+		void fillOverrides();
 
 		void clear();
 		

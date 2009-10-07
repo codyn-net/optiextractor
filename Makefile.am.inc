@@ -30,6 +30,7 @@ optiextractor_SOURCES = \
 	Application/handlerunnerstarted.cc \
 	Application/executeclicked.cc \
 	Application/window.cc \
+	Application/filloverrides.cc \
 	Application/overridenameedited.cc \
 	Application/clear.cc \
 	Application/openresponse.cc \

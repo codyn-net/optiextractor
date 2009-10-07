@@ -35,13 +35,14 @@ void Application::fill()
 		string value;
 		
 		r.get_value(0, name);
-		r.get_value(1, name);
+		r.get_value(1, value);
 		
 		d_parameterMap[name] = value;
 	}
 	
 	fillBoundaries();
 	fillLog();
+	fillOverrides();
 	
 	size_t maxiteration = d_database.query("SELECT MAX(`iteration`) FROM `solution`").get<size_t>(0);
 	size_t maxindex = d_database.query("SELECT MAX(`index`) FROM `solution`").get<size_t>(0);
