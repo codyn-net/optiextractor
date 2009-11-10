@@ -1051,11 +1051,11 @@ settings:</property>
         <property name="visible">True</property>
         <property name="spacing">2</property>
         <child>
-          <object class="GtkHBox" id="hbox1">
+          <object class="GtkHBox" id="hbox12">
             <property name="visible">True</property>
             <property name="spacing">12</property>
             <child>
-              <object class="GtkImage" id="image1">
+              <object class="GtkImage" id="image122">
                 <property name="visible">True</property>
                 <property name="yalign">0</property>
                 <property name="stock">gtk-dialog-question</property>
@@ -1068,11 +1068,11 @@ settings:</property>
               </packing>
             </child>
             <child>
-              <object class="GtkVBox" id="vbox1">
+              <object class="GtkVBox" id="vbox12">
                 <property name="visible">True</property>
                 <property name="spacing">6</property>
                 <child>
-                  <object class="GtkLabel" id="label2">
+                  <object class="GtkLabel" id="label22">
                     <property name="visible">True</property>
                     <property name="xalign">0</property>
                     <property name="ypad">6</property>
@@ -1086,7 +1086,7 @@ settings:</property>
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkLabel" id="label1">
+                  <object class="GtkLabel" id="label12">
                     <property name="visible">True</property>
                     <property name="xalign">0</property>
                     <property name="yalign">0</property>
@@ -1177,11 +1177,11 @@ during optimization.</property>
         <property name="visible">True</property>
         <property name="spacing">2</property>
         <child>
-          <object class="GtkHBox" id="hbox1">
+          <object class="GtkHBox" id="hbox13">
             <property name="visible">True</property>
             <property name="spacing">12</property>
             <child>
-              <object class="GtkImage" id="image1">
+              <object class="GtkImage" id="image13">
                 <property name="visible">True</property>
                 <property name="yalign">0</property>
                 <property name="stock">gtk-dialog-info</property>
@@ -1194,11 +1194,11 @@ during optimization.</property>
               </packing>
             </child>
             <child>
-              <object class="GtkVBox" id="vbox1">
+              <object class="GtkVBox" id="vbox13">
                 <property name="visible">True</property>
                 <property name="spacing">6</property>
                 <child>
-                  <object class="GtkLabel" id="label2">
+                  <object class="GtkLabel" id="label23">
                     <property name="visible">True</property>
                     <property name="xalign">0</property>
                     <property name="ypad">6</property>

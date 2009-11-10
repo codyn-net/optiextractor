@@ -1,4 +1,4 @@
-#include "Application/application.hh"
+#include "application.hh"
 
 #include <iostream>
 using namespace std;
@@ -11,10 +11,10 @@ int main(int argc, char **argv)
 	
 	if (argc > 1)
 	{
-		application.open(argv[1]);
+		application.Open(argv[1]);
 	}
 	
-	Gtk::Main::run(application.window());
+	Gtk::Main::run(application.Window());
 	
 	return 0;
 }

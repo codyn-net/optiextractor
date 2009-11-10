@@ -1,4 +1,4 @@
-AC_INIT(optiextractor, 0.1.2)
+AC_INIT(optiextractor, 1.0)
 
 AM_INIT_AUTOMAKE([subdir-objects])
 
@@ -18,8 +18,7 @@ AM_MAINTAINER_MODE
 
 PKG_CHECK_MODULES(PACKAGE_OPTIEXTRACTOR, [
 	gtkmm-2.4 >= 2.12
-	libjessevdk-0.1
-	liboptimization-0.1
+	liboptimization-1.0
 ])
 
 AC_SUBST(PACKAGE_OPTIEXTRACTOR_CFLAGS)
@@ -27,5 +26,6 @@ AC_SUBST(PACKAGE_OPTIEXTRACTOR_LIBS)
 
 AC_OUTPUT(
 Makefile
-
+src/Makefile
+data/Makefile
 )
