@@ -18,7 +18,6 @@ AM_MAINTAINER_MODE
 
 PKG_CHECK_MODULES(PACKAGE_OPTIEXTRACTOR, [
 	gtkmm-2.4 >= 2.12
-	libjessevdk-0.1
 	liboptimization-1.0
 ])
 
