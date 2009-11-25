@@ -908,7 +908,9 @@ Application::RunSolution()
 	/* Set dispatcher settings */
 	store = Get<Gtk::ListStore>("list_store_dispatcher");
 	std::map<std::string, std::string> settings;
-	
+
+	settings["optiextractor"] = "yes";
+
 	for (iter = store->children().begin(); iter != store->children().end(); ++iter)
 	{
 		Gtk::TreeRow r = *iter;
