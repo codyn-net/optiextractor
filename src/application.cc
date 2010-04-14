@@ -1,15 +1,15 @@
 #include "application.hh"
-#include <db/db.hh>
-#include <os/os.hh>
-#include <base/base.hh>
+#include <jessevdk/db/db.hh>
+#include <jessevdk/os/os.hh>
+#include <jessevdk/base/base.hh>
 
 #include <sys/types.h>
 #include <dirent.h>
 
 using namespace std;
-using namespace db;
-using namespace os;
-using namespace base;
+using namespace jessevdk::db;
+using namespace jessevdk::os;
+using namespace jessevdk::base;
 using namespace optimization::messages::task;
 
 Application::Application()
@@ -19,9 +19,9 @@ Application::Application()
 	d_openDialog(0),
 	d_scanned(false)
 {
-	d_runner.OnState.add(*this, &Application::RunnerState);
-	d_runner.OnResponse.add(*this, &Application::RunnerResponse);
-	
+	d_runner.OnState.Add(*this, &Application::RunnerState);
+	d_runner.OnResponse.Add(*this, &Application::RunnerResponse);
+
 	Window().set_default_icon_name(Gtk::Stock::EXECUTE.id);
 }
 
@@ -31,7 +31,7 @@ void Application::Clear()
 
 	Get<Gtk::Range>("hscale_solution")->set_value(0);
 	Get<Gtk::Range>("hscale_iteration")->set_value(0);
-	
+
 	Get<Gtk::ListStore>("list_store_settings")->clear();
 	Get<Gtk::ListStore>("list_store_dispatcher")->clear();
 	Get<Gtk::ListStore>("list_store_fitness")->clear();
@@ -40,25 +40,25 @@ void Application::Clear()
 	Get<Gtk::ListStore>("list_store_solutions")->clear();
 	Get<Gtk::ListStore>("list_store_override")->clear();
 	Get<Gtk::ListStore>("list_store_log")->clear();
-	
+
 	Get<Gtk::Label>("label_summary_optimizer")->set_text("");
 	Get<Gtk::Label>("label_summary_time")->set_text("");
 	Get<Gtk::Label>("label_summary_best")->set_text("");
-	
+
 	Get<Gtk::Label>("label_solution_fitness")->set_text("");
 	Get<Gtk::Label>("label_solution_iteration")->set_text("");
 	Get<Gtk::Label>("label_solution_solution")->set_text("");
-	
+
 	d_runner.Cancel();
 
 	d_scanned = false;
 	d_dispatchers.clear();
-	
+
 	d_lastResponse = Response();
 	d_lastResponse.mutable_failure()->set_type(Response::Failure::NoResponse);
-	
+
 	d_parameterMap.clear();
-	
+
 	d_overrideDispatcher = "";
 }
 
@@ -80,7 +80,7 @@ Application::Error(string const &error, string const &secondary)
 
 	d_dialog->set_transient_for(Window());
 	d_dialog->set_position(Gtk::WIN_POS_CENTER_ON_PARENT);
-	
+
 	if (secondary != "")
 	{
 		d_dialog->set_secondary_text(secondary, true);
@@ -110,25 +110,25 @@ void
 Application::FillBoundaries()
 {
 	Glib::RefPtr<Gtk::ListStore> store = Get<Gtk::ListStore>("list_store_boundaries");
-	
+
 	store->clear();
-	
-	Row row = d_database.query("SELECT `name`, `min`, `max` FROM boundaries ORDER BY `name`");
-	
-	if (row.done())
+
+	sqlite::Row row = d_database("SELECT `name`, `min`, `max` FROM boundaries ORDER BY `name`");
+
+	if (row.Done())
 	{
 		return;
 	}
-	
+
 	while (row)
 	{
 		Gtk::TreeRow iter = *(store->append());
-		
-		iter.set_value(0, row.get<string>(0));
-		iter.set_value(1, row.get<string>(1));
-		iter.set_value(2, row.get<string>(2));
-		
-		row.next();
+
+		iter.set_value(0, row.Get<string>(0));
+		iter.set_value(1, row.Get<string>(1));
+		iter.set_value(2, row.Get<string>(2));
+
+		row.Next();
 	}
 }
 
@@ -141,23 +141,23 @@ Application::Fill()
 	}
 
 	Get<Gtk::Notebook>("notebook")->set_sensitive(true);
-	
-	Get<Gtk::Label>("label_summary_optimizer")->set_text(d_database.query("SELECT `value` FROM settings WHERE `name` = 'optimizer'").get<string>(0));
+
+	Get<Gtk::Label>("label_summary_optimizer")->set_text(d_database("SELECT `optimizer` FROM job").Get<string>(0));
 
 	/* Best fitness */
-	Get<Gtk::Label>("label_summary_best")->set_text(d_database.query("SELECT MAX(`best_fitness`) FROM `iteration`").get<string>(0));
-	
-	time_t first = d_database.query("SELECT `time` FROM `iteration` WHERE `iteration` = 0").get<size_t>(0);
-	time_t last = d_database.query("SELECT `time` FROM `iteration` ORDER BY `time` DESC LIMIT 1").get<size_t>(0);
-	
+	Get<Gtk::Label>("label_summary_best")->set_text(d_database("SELECT MAX(`best_fitness`) FROM `iteration`").Get<string>(0));
+
+	time_t first = d_database("SELECT `time` FROM `iteration` WHERE `iteration` = 0").Get<size_t>(0);
+	time_t last = d_database("SELECT `time` FROM `iteration` ORDER BY `time` DESC LIMIT 1").Get<size_t>(0);
+
 	Get<Gtk::Label>("label_summary_time")->set_text(FormatDate(first) + "   to   "  + FormatDate(last));
 
-	FillKeyValue("list_store_settings", "settings", "name", "value", "`name` <> 'optimizer'");
+	FillKeyValue("list_store_settings", "settings", "name", "value");
 	FillKeyValue("list_store_fitness", "fitness_settings", "name", "value");
 	FillKeyValue("list_store_dispatcher", "dispatcher", "name", "value");
-	
+
 	FillKeyValue("list_store_parameters", "parameters", "name", "boundary");
-	
+
 	Gtk::TreeModel::iterator iter;
 	Glib::RefPtr<Gtk::ListStore> store = Get<Gtk::ListStore>("list_store_parameters");\
 
@@ -166,23 +166,23 @@ Application::Fill()
 		Gtk::TreeRow r = *iter;
 		string name;
 		string value;
-		
+
 		r.get_value(0, name);
 		r.get_value(1, value);
-		
+
 		d_parameterMap[name] = value;
 	}
-	
+
 	FillBoundaries();
 	FillLog();
 	FillOverrides();
-	
-	size_t maxiteration = d_database.query("SELECT MAX(`iteration`) FROM `solution`").get<size_t>(0);
-	size_t maxindex = d_database.query("SELECT MAX(`index`) FROM `solution`").get<size_t>(0);
-	
+
+	size_t maxiteration = d_database("SELECT MAX(`iteration`) FROM `solution`").Get<size_t>(0);
+	size_t maxindex = d_database("SELECT MAX(`index`) FROM `solution`").Get<size_t>(0);
+
 	Get<Gtk::Range>("hscale_iteration")->set_range(0, maxiteration + 1);
 	Get<Gtk::Range>("hscale_solution")->set_range(0, maxindex + 1);
-	
+
 	SolutionChanged();
 }
 
@@ -190,40 +190,40 @@ void
 Application::FillKeyValue(Glib::RefPtr<Gtk::ListStore> store, string const &table, string const &keyname, string const &valuename, string const &condition)
 {
 	store->clear();
-	
+
 	stringstream q;
-	
+
 	q << "SELECT `" << keyname << "`, `" << valuename << "` FROM `" << table << "`";
-	
+
 	if (condition != "")
 	{
 		q << " WHERE " << condition;
 	}
-	
+
 	q << " ORDER BY `" << keyname << "`";
-	
-	Row row = d_database.query(q.str());
-	
-	if (row.done())
+
+	sqlite::Row row = d_database(q.str());
+
+	if (row.Done())
 	{
 		return;
 	}
-	
+
 	while (row)
 	{
 		Gtk::TreeRow iter = *(store->append());
-		
-		iter.set_value(0, row.get<string>(0));
-		
+
+		iter.set_value(0, row.Get<string>(0));
+
 		try
 		{
-			iter.set_value(1, row.get<string>(1));
+			iter.set_value(1, row.Get<string>(1));
 		}
 		catch (exception &e)
 		{
 		}
 
-		row.next();
+		row.Next();
 	}
 }
 
@@ -237,47 +237,47 @@ void
 Application::FillLog()
 {
 	Glib::RefPtr<Gtk::ListStore> store = Get<Gtk::ListStore>("list_store_log");
-	
+
 	store->clear();
-	Row row = d_database.query("SELECT * FROM log");
-	
-	if (row.done())
+	sqlite::Row row = d_database("SELECT * FROM log");
+
+	if (row.Done())
 	{
 		return;
 	}
-	
+
 	while (row)
 	{
 		Gtk::TreeRow r = *(store->append());
-		
-		r->set_value(0, FormatDate(row.get<size_t>(0)));
-		r->set_value(1, row.get<string>(1));
-		r->set_value(2, row.get<string>(2));
 
-		row.next();
+		r->set_value(0, FormatDate(row.Get<size_t>(0)));
+		r->set_value(1, row.Get<string>(1));
+		r->set_value(2, row.Get<string>(2));
+
+		row.Next();
 	}
 }
 
 void Application::FillOverrides()
 {
 	Glib::RefPtr<Gtk::ListStore> store = Get<Gtk::ListStore>("list_store_override");
-	
+
 	store->clear();
-	Row row = d_database.query("SELECT `name`, `value` FROM optiextractor_overrides");
-	
-	if (row.done())
+	sqlite::Row row = d_database("SELECT `name`, `value` FROM optiextractor_overrides");
+
+	if (row.Done())
 	{
 		return;
 	}
-	
+
 	while (row)
 	{
 		Gtk::TreeRow r = *(store->append());
-		
-		r->set_value(0, row.get<string>(0));
-		r->set_value(1, row.get<string>(1));
 
-		row.next();
+		r->set_value(0, row.Get<string>(0));
+		r->set_value(1, row.Get<string>(1));
+
+		row.Next();
 	}
 }
 
@@ -289,7 +289,7 @@ Application::FormatDate(size_t timestamp, std::string const &format) const
 
 	struct tm *tt = localtime(&t);
 	strftime(buffer, 1024, format.c_str(), tt);
-	
+
 	return string(buffer);
 }
 
@@ -309,9 +309,9 @@ Application::HandleRunnerStopped()
 
 	// Show response dialog
 	Gtk::Dialog *dialog;
-	
+
 	d_builder->get_widget("dialog_response", dialog);
-	
+
 	Glib::RefPtr<Gtk::Label> label = Get<Gtk::Label>("label_response_info");
 	Glib::RefPtr<Gtk::TextView> tv = Get<Gtk::TextView>("text_view_response_info");
 	Glib::RefPtr<Gtk::ScrolledWindow> sw = Get<Gtk::ScrolledWindow>("scrolled_window_response_info");
@@ -321,7 +321,7 @@ Application::HandleRunnerStopped()
 	if (d_lastResponse.status() == Response::Failed)
 	{
 		string message;
-		
+
 		switch (d_lastResponse.failure().type())
 		{
 			case Response::Failure::Timeout:
@@ -340,20 +340,20 @@ Application::HandleRunnerStopped()
 				message = "An unknown error occurred";
 			break;
 		}
-		
+
 		label->set_text(message);
 		string error = d_runner.Error();
-		
+
 		if (d_lastResponse.failure().message() != "")
 		{
 			if (error != "")
 			{
 				error += "\n\n";
 			}
-			
+
 			error += d_lastResponse.failure().message();
 		}
-		
+
 		if (error != "")
 		{
 			tv->get_buffer()->set_text(error);
@@ -368,19 +368,19 @@ Application::HandleRunnerStopped()
 	{
 		stringstream s;
 		s << "Solution ran successfully: ";
-		
-		for (size_t i = 0; i < d_lastResponse.fitness_size(); ++i)
+
+		for (int i = 0; i < d_lastResponse.fitness_size(); ++i)
 		{
 			Response::Fitness const &fitness = d_lastResponse.fitness(i);
-			
+
 			if (i != 0)
 			{
 				s << ", ";
 			}
-			
+
 			s << fitness.name() << " = " << fitness.value() << endl;
 		}
-		
+
 		label->set_text(s.str());
 		sw->hide();
 	}
@@ -394,13 +394,13 @@ Application::InitializeUI()
 {
 	d_builder = Glib::RefPtr<Gtk::Builder>(Gtk::Builder::create_from_file(DATADIR "/optiextractor/window.xml"));
 	d_builder->get_widget("window", d_window);
-	
+
 	/* Create menu */
 	d_uiManager = Gtk::UIManager::create();
-	
+
 	d_actionGroup = Gtk::ActionGroup::create();
 	d_actionGroup->add(Gtk::Action::create("FileMenuAction", "_File"));
-	d_actionGroup->add(Gtk::Action::create("FileOpenAction", Gtk::Stock::OPEN), 
+	d_actionGroup->add(Gtk::Action::create("FileOpenAction", Gtk::Stock::OPEN),
 	                   sigc::mem_fun(*this, &Application::OnFileOpen));
 	d_actionGroup->add(Gtk::Action::create("FileCloseAction", Gtk::Stock::CLOSE),
 	                   sigc::mem_fun(*this, &Application::OnFileClose));
@@ -410,9 +410,7 @@ Application::InitializeUI()
 	d_actionGroup->add(Gtk::Action::create("DatabaseMenuAction", "_Database"));
 	d_actionGroup->add(Gtk::Action::create("DatabaseExportAction", "_Export"),
 	                   sigc::mem_fun(*this, &Application::OnDatabaseExport));
-	d_actionGroup->add(Gtk::Action::create("DatabaseOptimizeAction", "_Optimize"),
-	                   sigc::mem_fun(*this, &Application::OnDatabaseOptimize));
-	
+
 	d_uiManager->insert_action_group(d_actionGroup);
 
 	d_window->add_accel_group(d_uiManager->get_accel_group());
@@ -428,25 +426,23 @@ Application::InitializeUI()
 	"    </menu>"
 	"    <menu name='DatabaseMenu' action='DatabaseMenuAction'>"
 	"      <menuitem name='DatabaseExport' action='DatabaseExportAction'/>"
-	"      <separator/>"
-	"      <menuitem name='DatabaseOptimize' action='DatabaseOptimizeAction'/>"
 	"    </menu>"
 	"  </menubar>"
 	"</ui>";
 
 	d_uiManager->add_ui_from_string(ui_info);
-	
+
 	Gtk::Widget *menu = d_uiManager->get_widget("/ui/MenuBar");
 	Get<Gtk::VBox>("vbox_main")->pack_start(*menu, Gtk::PACK_SHRINK);
 
 	Get<Gtk::Range>("hscale_solution")->signal_value_changed().connect(sigc::mem_fun(*this, &Application::SolutionChanged));
 	Get<Gtk::Range>("hscale_iteration")->signal_value_changed().connect(sigc::mem_fun(*this, &Application::SolutionChanged));
-	
+
 	Get<Gtk::Button>("button_execute")->signal_clicked().connect(sigc::mem_fun(*this, &Application::ExecuteClicked));
-	
+
 	Get<Gtk::Button>("button_add_override")->signal_clicked().connect(sigc::mem_fun(*this, &Application::OverrideAdd));
 	Get<Gtk::Button>("button_remove_override")->signal_clicked().connect(sigc::mem_fun(*this, &Application::OverrideRemove));
-	
+
 	Get<Gtk::CellRendererText>("cell_renderer_text_override_name")->signal_edited().connect(sigc::mem_fun(*this, &Application::OverrideNameEdited));
 
 	Get<Gtk::CellRendererText>("cell_renderer_text_override_value")->signal_edited().connect(sigc::mem_fun(*this, &Application::OverrideValueEdited));
@@ -458,8 +454,8 @@ void
 Application::OnDatabaseExport()
 {
 	Gtk::FileChooserDialog *dialog;
-	
-	dialog = new Gtk::FileChooserDialog(Window(), 
+
+	dialog = new Gtk::FileChooserDialog(Window(),
 	                                   "Export Optimization Database",
 	                                    Gtk::FILE_CHOOSER_ACTION_SAVE);
 
@@ -467,13 +463,13 @@ Application::OnDatabaseExport()
 	dialog->add_button(Gtk::Stock::SAVE, Gtk::RESPONSE_OK);
 
 	dialog->set_local_only(true);
-	
+
 	Gtk::FileFilter *txtfilter = new Gtk::FileFilter();
 
 	txtfilter->set_name("Matlab data text files (*.txt)");
 	txtfilter->add_pattern("*.txt");
 	dialog->add_filter(*txtfilter);
-	
+
 	Gtk::FileFilter *filter = new Gtk::FileFilter();
 	filter->set_name("All files (*)");
 	filter->add_pattern("*");
@@ -484,65 +480,65 @@ Application::OnDatabaseExport()
 	{
 		delete txtfilter;
 		delete dialog;
-	
+
 		return;
 	}
-	
+
 	string filename = dialog->get_filename();
 	if (dialog->get_filter() && dialog->get_filter()->get_name() == txtfilter->get_name())
 	{
-		if (!String(filename).endsWith(".txt"))
+		if (!String(filename).EndsWith(".txt"))
 		{
 			filename += ".txt";
 		}
 	}
-	
+
 	delete txtfilter;
 	delete dialog;
 
 	ofstream fstr(filename.c_str(), ios::out);
-	
+
 	if (!fstr)
 	{
 		Error("Could not create file to export to");
 		return;
 	}
-	
-	size_t iterations = d_database.query("SELECT COUNT(*) FROM `solution` GROUP BY `index`").get<size_t>(0);
-	size_t solutions = d_database.query("SELECT COUNT(*) FROM `solution`").get<size_t>(0);
-	
+
+	size_t iterations = d_database("SELECT COUNT(*) FROM `solution` GROUP BY `index`").Get<size_t>(0);
+	size_t solutions = d_database("SELECT COUNT(*) FROM `solution`").Get<size_t>(0);
+
 	/* Collect fitness names */
-	Row cols = d_database.query("PRAGMA table_info(`fitness`)");
+	sqlite::Row cols = d_database("PRAGMA table_info(`fitness`)");
 	vector<string> fitnesses;
 	vector<string> colnames;
-	
+
 	fitnesses.push_back("value");
 	colnames.push_back("`fitness`.value");
-	
-	if (!cols.done())
+
+	if (!cols.Done())
 	{
 		while (cols)
 		{
-			String name = cols.get<string>(1);
-			
-			if (name.startsWith("_"))
+			String name = cols.Get<string>(1);
+
+			if (name.StartsWith("_"))
 			{
 				fitnesses.push_back(name);
 				colnames.push_back("`fitness`." + name);
 			}
-			
-			cols.next();
+
+			cols.Next();
 		}
 	}
-	
+
 	if (fitnesses.size() == 2)
 	{
 		fitnesses.erase(fitnesses.begin() + 1);
 		colnames.erase(colnames.begin() + 1);
 	}
-	
+
 	vector<string> boundaries;
-	
+
 	Glib::RefPtr<Gtk::ListStore> store = Get<Gtk::ListStore>("list_store_boundaries");
 	Gtk::TreeModel::iterator iter;
 
@@ -555,80 +551,64 @@ Application::OnDatabaseExport()
 			boundaries.push_back(value);
 		}
 	}
-	
+
 	std::map<std::string, std::string>::iterator it;
 	vector<string> parameters;
-	
+
 	for (it = d_parameterMap.begin(); it != d_parameterMap.end(); ++it)
 	{
 		parameters.push_back(it->first);
 		parameters.push_back(it->second);
 	}
-	
-	size_t totalnum = iterations * solutions;
-	string names = String::join(colnames, ", ");
 
-	string optimizer = d_database.query("SELECT `value` FROM `settings` WHERE `name` = 'optimizer'").get<string>(0);
+	string names = String::Join(colnames, ", ");
+
+	string optimizer = d_database("SELECT `optimizer` FROM `job`").Get<string>(0);
 	bool ispso = optimizer == "PSO" || optimizer == "DNPSO";
 
-	Row row = d_database.query(string("SELECT solution.`iteration`, solution.`index`, `values`, `value_names`") + (ispso ? ", `_velocity`" : "") + ", " + names + " FROM `solution` LEFT JOIN `fitness` ON (fitness.iteration = solution.iteration AND fitness.`index` = solution.`index`) ORDER BY solution.`iteration`, solution.`index`");
-	
+	sqlite::Row row = d_database(string("SELECT solution.`iteration`, solution.`index`, `values`, `value_names`") + (ispso ? ", `_velocity`" : "") + ", " + names + " FROM `solution` LEFT JOIN `fitness` ON (fitness.iteration = solution.iteration AND fitness.`index` = solution.`index`) ORDER BY solution.`iteration`, solution.`index`");
+
 	bool header = false;
-	
-	if (!row.done())
+
+	if (!row.Done())
 	{
 		while (row)
 		{
 			if (!header)
 			{
-				size_t num = String(row.get<string>(2)).split(",").size();
-				string nm = String::join(String(row.get<string>(3)).split(","), "\t");
-				string fitnm = String::join(fitnesses, "\t");
-				
+				size_t num = String(row.Get<string>(2)).Split(",").size();
+				string nm = String::Join(String(row.Get<string>(3)).Split(","), "\t");
+				string fitnm = String::Join(fitnesses, "\t");
+
 				fstr << num << "\t" << iterations << "\t" << solutions << "\t" << nm << "\t" << fitnm << endl;
-				fstr << String::join(boundaries, "\t") << endl;
-				fstr << String::join(parameters, "\t") << endl;
-				
+				fstr << String::Join(boundaries, "\t") << endl;
+				fstr << String::Join(parameters, "\t") << endl;
+
 				header = true;
 			}
-			
-			fstr << row.get<size_t>(0) << "\t" << row.get<size_t>(1);
+
+			fstr << row.Get<size_t>(0) << "\t" << row.Get<size_t>(1);
 			size_t start = ispso ? 5 : 4;
 
 			for (size_t i = start; i < start + fitnesses.size(); ++i)
 			{
-				fstr << row.get<string>(i);
+				fstr << row.Get<string>(i);
 			}
-			
-			fstr << String::join(String(row.get<string>(2)).split(","), "\t");
-			
+
+			fstr << String::Join(String(row.Get<string>(2)).Split(","), "\t");
+
 			if (ispso)
 			{
-				fstr << String::join(String(row.get<string>(4)).split(","), "\t");
+				fstr << String::Join(String(row.Get<string>(4)).Split(","), "\t");
 			}
 
 			fstr << endl;
 
-			row.next();
+			row.Next();
 		}
 	}
-	
+
 	fstr.close();
-}
-
-void
-Application::OnDatabaseOptimize()
-{
-	/* Create indices if necessary */
-	d_database.begin();
-	d_database.query("CREATE INDEX IF NOT EXISTS iteration_iteration ON iteration(`iteration`)");
-	d_database.query("CREATE INDEX IF NOT EXISTS solution_index ON solution(`index`)");
-	d_database.query("CREATE INDEX IF NOT EXISTS solution_iteration ON solution(`iteration`)");
-	
-	d_database.query("CREATE INDEX IF NOT EXISTS fitness_index ON fitness(`index`)");
-	d_database.query("CREATE INDEX IF NOT EXISTS fitness_iteration ON fitness(`iteration`)");
-
-	d_database.commit();
 }
 
 void
@@ -645,8 +625,8 @@ Application::OnFileOpen()
 	{
 		delete d_openDialog;
 	}
-	
-	d_openDialog = new Gtk::FileChooserDialog(Window(), 
+
+	d_openDialog = new Gtk::FileChooserDialog(Window(),
 	                                          "Open Optimization Database",
 	                                          Gtk::FILE_CHOOSER_ACTION_OPEN);
 
@@ -669,15 +649,15 @@ void
 Application::Open(string const &filename)
 {
 	Clear();
-	
-	if (!FileSystem::fileExists(filename))
+
+	if (!FileSystem::FileExists(filename))
 	{
 		Error("<b>Database file does not exist</b>", "The file '<i>" + filename + "</i>' does not exist. Please make sure you open a valid optimization results database.");
 		return;
 	}
-	
-	d_database = SQLite(filename);
-	
+
+	d_database = sqlite::SQLite(filename);
+
 	if (!d_database)
 	{
 		Error("<b>Database could not be opened</b>", "The file '<i>" + filename + "</i>' could not be opened. Please make sure the file is a valid optimization results database.");
@@ -685,22 +665,22 @@ Application::Open(string const &filename)
 	}
 
 	// Do a quick test query
-	Row row = d_database.query("PRAGMA table_info(settings)");
+	sqlite::Row row = d_database("PRAGMA table_info(settings)");
 
-	if (!d_database.query("PRAGMA quick_check") || (!row || row.done()))
+	if (!d_database("PRAGMA quick_check") || (!row || row.Done()))
 	{
 		Error("<b>Database could not be opened</b>", "The file '<i>" + filename + "</i>' could not be opened. Please make sure the file is a valid optimization results database.");
 		return;
 	}
-	
-	// Make sure to create the optiextractor_override table to store overrides
-	row = d_database.query("PRAGMA table_info(optiextractor_overrides)");
 
-	if (!row || row.done())
+	// Make sure to create the optiextractor_override table to store overrides
+	row = d_database("PRAGMA table_info(optiextractor_overrides)");
+
+	if (!row || row.Done())
 	{
-		d_database.query("CREATE TABLE `optiextractor_overrides` (`name` TEXT, `value` TEXT)");
+		d_database("CREATE TABLE `optiextractor_overrides` (`name` TEXT, `value` TEXT)");
 	}
-	
+
 	Fill();
 }
 
@@ -721,20 +701,20 @@ Application::OverrideAdd()
 {
 	Glib::RefPtr<Gtk::ListStore> store = Get<Gtk::ListStore>("list_store_override");
 	Glib::RefPtr<Gtk::TreeView> tv = Get<Gtk::TreeView>("tree_view_override");
-	
+
 	Gtk::TreeIter iter = store->append();
 	Gtk::TreeRow row = *iter;
-	
+
 	row.set_value(0, string("key"));
 	row.set_value(1, string("value"));
-	
+
 	Gtk::TreePath path = store->get_path(iter);
-	
+
 	tv->scroll_to_cell(path, *tv->get_column(0), 0.5, 0.5);
 	tv->set_cursor(path, *tv->get_column(0), true);
-	
-	d_database.query("DELETE FROM `optiextractor_overrides` WHERE `name` = 'key'");
-	d_database.query("INSERT INTO `optiextractor_overrides` (`name`, `value`) VALUES ('key', 'value')");
+
+	d_database("DELETE FROM `optiextractor_overrides` WHERE `name` = 'key'");
+	d_database("INSERT INTO `optiextractor_overrides` (`name`, `value`) VALUES ('key', 'value')");
 }
 
 void
@@ -744,18 +724,18 @@ Application::OverrideNameEdited(Glib::ustring const &path, Glib::ustring const &
 
 	Gtk::TreeModel::iterator iter = store->get_iter(path);
 	Gtk::TreeRow row = *iter;
-	
+
 	string current;
 
-	row->get_value(0, current);	
+	row->get_value(0, current);
 	row->set_value(0, newtext);
-	
-	d_database.query() << "UPDATE `optiextractor_overrides` SET `name` = '"
-	                   << SQLite::serialize(newtext)
-	                   << "' WHERE `name` = '"
-	                   << SQLite::serialize(current)
-	                   << "'"
-	                   << SQLite::Query::End();
+
+	d_database() << "UPDATE `optiextractor_overrides` SET `name` = '"
+	             << sqlite::SQLite::Serialize(newtext)
+	             << "' WHERE `name` = '"
+	             << sqlite::SQLite::Serialize(current)
+	             << "'"
+	             << sqlite::SQLite::Query::End();
 }
 
 void
@@ -763,23 +743,23 @@ Application::OverrideRemove()
 {
 	Glib::RefPtr<Gtk::ListStore> store = Get<Gtk::ListStore>("list_store_override");
 	Glib::RefPtr<Gtk::TreeView> tv = Get<Gtk::TreeView>("tree_view_override");
-	
+
 	Gtk::TreeModel::iterator iter = tv->get_selection()->get_selected();
-	
+
 	if (!iter)
 	{
 		return;
 	}
-	
+
 	string name;
 	iter->get_value(0, name);
-	
-	d_database.query() << "DELETE FROM optiextractor_overrides WHERE `name` = '" 
-	                   << SQLite::serialize(name) << "'"
-	                   << SQLite::Query::End();
-	
+
+	d_database() << "DELETE FROM optiextractor_overrides WHERE `name` = '"
+	             << sqlite::SQLite::Serialize(name) << "'"
+	             << sqlite::SQLite::Query::End();
+
 	iter = store->erase(iter);
-		
+
 	if (iter)
 	{
 		tv->get_selection()->select(iter);
@@ -787,12 +767,12 @@ Application::OverrideRemove()
 	else
 	{
 		size_t num = store->children().size();
-		
+
 		if (num != 0)
 		{
 			stringstream s;
 			s << (num - 1);
-			
+
 			tv->get_selection()->select(Gtk::TreePath(s.str()));
 		}
 	}
@@ -805,37 +785,37 @@ Application::OverrideValueEdited(Glib::ustring const &path, Glib::ustring const 
 
 	Gtk::TreeModel::iterator iter = store->get_iter(path);
 	Gtk::TreeRow row = *iter;
-	
+
 	string current;
 
 	row->get_value(0, current);
 	row->set_value(1, newtext);
-	
-	d_database.query() << "UPDATE `optiextractor_overrides` SET `value` = '"
-	                   << SQLite::serialize(newtext)
-	                   << "' WHERE `name` = '"
-	                   << SQLite::serialize(current) << "'"
-	                   << SQLite::Query::End();
+
+	d_database() << "UPDATE `optiextractor_overrides` SET `value` = '"
+	             << sqlite::SQLite::Serialize(newtext)
+	             << "' WHERE `name` = '"
+	             << sqlite::SQLite::Serialize(current) << "'"
+	             << sqlite::SQLite::Query::End();
 }
 
 string
 Application::ResolveDispatcher()
 {
 	// First try to find the dispatcher from the database
-	Row row = d_database.query("SELECT `value` FROM `dispatcher` WHERE `name` = 'name'");
-	
-	if (row.done())
+	sqlite::Row row = d_database("SELECT `value` FROM `dispatcher` WHERE `name` = 'name'");
+
+	if (row.Done())
 	{
 		// No dispatcher found
 		return "";
 	}
-	
-	string dispatcher = row.get<string>(0);
+
+	string dispatcher = row.Get<string>(0);
 
 	/* Try to locate dispatcher */
-	if (FileSystem::isAbsolute(dispatcher))
+	if (FileSystem::IsAbsolute(dispatcher))
 	{
-		return FileSystem::fileExists(dispatcher) ? dispatcher : "";
+		return FileSystem::FileExists(dispatcher) ? dispatcher : "";
 	}
 	else
 	{
@@ -844,7 +824,7 @@ Application::ResolveDispatcher()
 		std::map<std::string, std::string>::iterator fnd = d_dispatchers.find(dispatcher);
 		dispatcher = (fnd != d_dispatchers.end()) ? fnd->second : "";
 	}
-	
+
 	return dispatcher;
 }
 
@@ -858,7 +838,7 @@ void
 Application::RunnerState(bool running)
 {
 	Glib::RefPtr<Gtk::Button> button = Get<Gtk::Button>("button_execute");
-	
+
 	if (!running)
 	{
 		button->set_label(Gtk::Stock::EXECUTE.id);
@@ -879,50 +859,50 @@ Application::RunSolution()
 	d_lastResponse = Response();
 	d_lastResponse.set_status(Response::Failed);
 	d_lastResponse.mutable_failure()->set_type(Response::Failure::NoResponse);
-		
+
 	// Create dispatch request
-	Task::Description description;
-	
-	description.set_job("");
-	description.set_optimizer(d_database.query("SELECT `value` FROM settings WHERE `name` = 'optimizer'").get<string>(0));
-	
+	Task task;
+
+	task.set_job("");
+	task.set_optimizer(d_database("SELECT `value` FROM job WHERE `name` = 'optimizer'").Get<string>(0));
+
 	Glib::RefPtr<Gtk::ListStore> store = Get<Gtk::ListStore>("list_store_solutions");
 	Gtk::TreeModel::iterator iter;
-	
+
 	// Set parameters
 	for (iter = store->children().begin(); iter != store->children().end(); ++iter)
 	{
 		Gtk::TreeRow r = *iter;
 		string name;
 		string value;
-		
+
 		r.get_value(0, name);
 		r.get_value(1, value);
-		
+
 		/* Check boundaries */
 		std::map<std::string, std::string>::iterator fnd = d_parameterMap.find(name);
 		double range[2] = {0, 0};
-		
+
 		if (fnd != d_parameterMap.end())
 		{
-			Row row = d_database.query("SELECT `min`, `max` FROM boundaries WHERE `name` = '" + SQLite::serialize(fnd->second) + "'");
-			
-			if (!row.done())
+			sqlite::Row row = d_database("SELECT `min`, `max` FROM boundaries WHERE `name` = '" + sqlite::SQLite::Serialize(fnd->second) + "'");
+
+			if (!row.Done())
 			{
-				range[0] = row.get<double>(0);
-				range[1] = row.get<double>(1);
+				range[0] = row.Get<double>(0);
+				range[1] = row.Get<double>(1);
 			}
 		}
 
-		Task::Description::Parameter *parameter;
-		parameter = description.add_parameters();
+		Task::Parameter *parameter;
+		parameter = task.add_parameters();
 
 		parameter->set_name(name);
 		parameter->set_value(String(value));
 		parameter->set_min(range[0]);
 		parameter->set_max(range[1]);
 	}
-	
+
 	/* Set dispatcher settings */
 	store = Get<Gtk::ListStore>("list_store_dispatcher");
 	std::map<std::string, std::string> settings;
@@ -934,51 +914,51 @@ Application::RunSolution()
 		Gtk::TreeRow r = *iter;
 		string name;
 		string value;
-		
+
 		r.get_value(0, name);
 		r.get_value(1, value);
-		
+
 		if (name != "dispatcher")
 		{
 			settings[name] = value;
 		}
 	}
-	
+
 	store = Get<Gtk::ListStore>("list_store_override");
-	
+
 	for (iter = store->children().begin(); iter != store->children().end(); ++iter)
 	{
 		Gtk::TreeRow r = *iter;
 		string name;
 		string value;
-		
+
 		r.get_value(0, name);
 		r.get_value(1, value);
-		
+
 		settings[name] = value;
 	}
-	
+
 	for (std::map<string, string>::iterator it = settings.begin(); it != settings.end(); ++it)
 	{
-		Task::Description::KeyValue *setting;
-		setting = description.add_settings();
-	
+		Task::KeyValue *setting;
+		setting = task.add_settings();
+
 		setting->set_key(it->first);
 		setting->set_value(it->second);
 	}
-	
+
 	string dispatcher = ResolveDispatcher();
-	
+
 	if (dispatcher == "")
 	{
 		/* Ask user for custom path */
 		Gtk::Dialog *dialog;
-		
+
 		d_builder->get_widget("dialog_dispatcher", dialog);
-		
+
 		Glib::RefPtr<Gtk::FileChooser> chooser = Get<Gtk::FileChooser>("file_chooser_button_dispatcher");
 		dialog->set_transient_for(Window());
-	
+
 		if (d_overrideDispatcher != "")
 		{
 			chooser->set_filename(d_overrideDispatcher);
@@ -992,10 +972,10 @@ Application::RunSolution()
 
 		dialog->hide();
 	}
-	
+
 	if (dispatcher != "")
 	{
-		if (!d_runner.Run(description, dispatcher))
+		if (!d_runner.Run(task, dispatcher))
 		{
 			Error("Could not spawn dispatcher: " + dispatcher);
 		}
@@ -1009,41 +989,41 @@ Application::Scan()
 	{
 		return;
 	}
-	
-	vector<string> paths = Environment::path("OPTIMIZATION_DISPATCHERS_PATH");
-	
+
+	vector<string> paths = Environment::Path("OPTIMIZATION_DISPATCHERS_PATH");
+
 	for (vector<string>::iterator iter = paths.begin(); iter != paths.end(); ++iter)
 	{
 		Scan(*iter);
 	}
-	
+
 	string path;
 
-	if (FileSystem::realpath(PREFIXDIR "/libexec/liboptimization-dispatchers-1.0", path))
+	if (FileSystem::Realpath(PREFIXDIR "/libexec/liboptimization-dispatchers-2.0", path))
 	{
 		Scan(path);
 	}
-	
+
 	d_scanned = true;
 }
 
 void
 Application::Scan(string const &directory)
 {
-	if (!FileSystem::directoryExists(directory))
+	if (!FileSystem::DirectoryExists(directory))
 	{
 		return;
 	}
-	
+
 	DIR *d = opendir(directory.c_str());
-	
+
 	if (!d)
 	{
 		return;
 	}
-	
+
 	struct dirent *dent;
-	
+
 	while ((dent = readdir(d)))
 	{
 		String s(Glib::build_filename(directory, dent->d_name));
@@ -1058,7 +1038,7 @@ Application::Scan(string const &directory)
 		{
 			continue;
 		}
-		
+
 		if (!(buf.st_mode & S_IXUSR))
 		{
 			continue;
@@ -1066,7 +1046,7 @@ Application::Scan(string const &directory)
 
 		d_dispatchers[dent->d_name] = s;
 	}
-	
+
 	closedir(d);
 }
 
@@ -1076,67 +1056,91 @@ Application::SolutionChanged()
 	Get<Gtk::Label>("label_solution_fitness")->set_text("");
 	Get<Gtk::Label>("label_solution_iteration")->set_text("");
 	Get<Gtk::Label>("label_solution_solution")->set_text("");
-	
+
 	Glib::RefPtr<Gtk::ListStore> store = Get<Gtk::ListStore>("list_store_solutions");
 	store->clear();
-	
+
 	if (!Get<Gtk::Notebook>("notebook")->sensitive())
 	{
 		return;
 	}
-	
+
+	sqlite::Row names = d_database("PRAGMA table_info(`parameter_values`)");
+	vector<string> cols;
+	string colnames;
+
+	while (names && !names.Done())
+	{
+		string name = names.Get<string>(1);
+		names.Next();
+
+		if (!String(name).StartsWith("_p_"))
+		{
+			continue;
+		}
+
+		cols.push_back(name.substr(3));
+
+		if (colnames != "")
+		{
+			colnames += ", ";
+		}
+
+		colnames += "parameter_values.`" + name + "`";
+	}
+
 	size_t iteration = Get<Gtk::Range>("hscale_iteration")->get_value();
 	size_t solution = Get<Gtk::Range>("hscale_solution")->get_value();
-	
+
 	stringstream q;
-	
-	q << "SELECT `iteration`, `index`, `fitness`, `values`, `value_names` FROM solution";
-	
+
+	q << "SELECT solution.`iteration`, solution.`index`, solution.`fitness`, " << colnames << " FROM solution LEFT JOIN parameter_values ON (parameter_values.`iteration` = solution.`iteration` AND parameter_values.`index` = solution.`index`)";
+
 	if (solution == 0 && iteration != 0)
 	{
-		q << " WHERE `iteration` = " << (iteration - 1);
+		q << " WHERE solution.`iteration` = " << (iteration - 1);
 	}
 	else if (iteration == 0 && solution != 0)
 	{
-		q << " WHERE `index` = " << (solution - 1);
+		q << " WHERE solution.`index` = " << (solution - 1);
 	}
 	else if (iteration != 0 && solution != 0)
 	{
-		q << " WHERE `iteration` = " << (iteration - 1) << " AND `index` = " << (solution - 1);
+		q << " WHERE solution.`iteration` = " << (iteration - 1) << " AND solution.`index` = " << (solution - 1);
 	}
-	
+
 	q << " ORDER BY `fitness` DESC LIMIT 1";
-	
-	Row row = d_database.query(q.str());
-	
-	if (row.done())
+
+	sqlite::Row row = d_database(q.str());
+
+	if (row.Done())
 	{
 		return;
 	}
-	
+
 	{
 		stringstream s;
-		s << (row.get<size_t>(0) + 1);
+		s << (row.Get<size_t>(0) + 1);
 		Get<Gtk::Label>("label_solution_iteration")->set_text(s.str());
 	}
 
 	{
 		stringstream s;
-		s << (row.get<size_t>(1) + 1);
+		s << (row.Get<size_t>(1) + 1);
 		Get<Gtk::Label>("label_solution_solution")->set_text(s.str());
 	}
-	
-	Get<Gtk::Label>("label_solution_fitness")->set_text(row.get<string>(2));
-	
-	vector<string> values = String(row.get<string>(3)).split(",");
-	vector<string> names = String(row.get<string>(4)).split(",");
-	
-	for (size_t i = 0; i < values.size(); ++i)
+
+	Get<Gtk::Label>("label_solution_fitness")->set_text(row.Get<string>(2));
+
+	for (size_t i = 0; i < cols.size(); ++i)
 	{
-		Gtk::TreeRow row = *(store->append());
-		
-		row.set_value(0, string(String(names[i]).strip()));
-		row.set_value(1, string(String(values[i]).strip()));
+		Gtk::TreeRow r = *(store->append());
+
+		string name = cols[i];
+		string value = row.Get<string>(i + 3);
+
+		r.set_value(0, name);
+		r.set_value(1, value);
 	}
 }
 
@@ -1147,6 +1151,6 @@ Application::Window()
 	{
 		InitializeUI();
 	}
-	
+
 	return *d_window;
 }

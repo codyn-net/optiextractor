@@ -2,7 +2,7 @@
 #define __APPLICATION_H__
 
 #include <gtkmm.h>
-#include <db/db.hh>
+#include <jessevdk/db/db.hh>
 #include <map>
 #include <string>
 
@@ -10,7 +10,7 @@
 
 class Application : public Gtk::Window
 {
-	db::SQLite d_database;
+	jessevdk::db::sqlite::SQLite d_database;
 	Glib::RefPtr<Gtk::Builder> d_builder;
 	Gtk::Window *d_window;
 	Gtk::MessageDialog *d_dialog;
@@ -85,8 +85,6 @@ class Application : public Gtk::Window
 		void OnFileQuit();
 
 		void OnDatabaseExport();
-		void OnDatabaseOptimize();
-		
 		void OpenResponse(int response);
 };
 

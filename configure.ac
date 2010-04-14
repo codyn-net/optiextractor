@@ -1,4 +1,4 @@
-AC_INIT(optiextractor, 1.0)
+AC_INIT(optiextractor, 2.0)
 
 AM_INIT_AUTOMAKE([subdir-objects])
 
@@ -16,10 +16,16 @@ AC_PROG_MAKE_SET
 AC_CONFIG_HEADERS(config.h)
 AM_MAINTAINER_MODE
 
+m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
+
 PKG_CHECK_MODULES(PACKAGE_OPTIEXTRACTOR, [
 	gtkmm-2.4 >= 2.12
-	liboptimization-1.0
+	liboptimization-2.0
 ])
+
+if test "x$USE_MAINTAINER_MODE" = "xyes"; then
+PACKAGE_OPTIEXTRACTOR_CFLAGS="$PACKAGE_OPTIEXTRACTOR_CFLAGS -Wall -Werror -Wuninitialized -Wmissing-declarations"
+fi
 
 AC_SUBST(PACKAGE_OPTIEXTRACTOR_CFLAGS)
 AC_SUBST(PACKAGE_OPTIEXTRACTOR_LIBS)

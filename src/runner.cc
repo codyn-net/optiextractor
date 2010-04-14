@@ -4,8 +4,8 @@
 
 using namespace std;
 using namespace optimization::messages::task;
-using namespace base;
-using namespace os;
+using namespace jessevdk::base;
+using namespace jessevdk::os;
 using namespace optimization;
 
 void
@@ -23,12 +23,12 @@ Runner::Cancel()
 void
 Runner::DispatchClose()
 {
-	d_pipe.readEnd().onData().remove(*this, &Runner::OnDispatchData);
-	d_pipe.readEnd().close();
-	d_pipe.writeEnd().close();
+	d_pipe.ReadEnd().OnData().Remove(*this, &Runner::OnDispatchData);
+	d_pipe.ReadEnd().Close();
+	d_pipe.WriteEnd().Close();
 
-	d_errorChannel.onData().remove(*this, &Runner::OnErrorData);
-	d_errorChannel.close();
+	d_errorChannel.OnData().Remove(*this, &Runner::OnErrorData);
+	d_errorChannel.Close();
 
 	d_connection.disconnect();
 	
@@ -39,16 +39,20 @@ Runner::DispatchClose()
 }
 
 bool
-Runner::OnDispatchData(os::FileDescriptor::DataArgs &args)
+Runner::OnDispatchData(FileDescriptor::DataArgs &args)
 {
-	vector<Response> messages;
-	vector<Response>::iterator iter;
+	vector<Communication> messages;
+	vector<Communication>::iterator iter;
 	
 	Messages::Extract(args, messages);
 	
 	for (iter = messages.begin(); iter != messages.end(); ++iter)
 	{
-		OnResponse(*iter);
+		if (iter->type() == Communication::CommunicationResponse)
+		{
+			OnResponse(iter->response());
+		}
+
 		break;
 	}
 	
@@ -64,14 +68,14 @@ Runner::OnDispatchedKilled(GPid pid, int ret)
 }
 
 bool
-Runner::OnErrorData(os::FileDescriptor::DataArgs &args)
+Runner::OnErrorData(FileDescriptor::DataArgs &args)
 {
 	d_errorMessage += args.data;
 	return false;
 }
 
 bool
-Runner::Run(Task::Description const &description, string const &executable)
+Runner::Run(Task const &task, string const &executable)
 {
 	if (d_running)
 	{
@@ -87,28 +91,28 @@ Runner::Run(Task::Description const &description, string const &executable)
 	int stderr;
 	
 	/* Check for environment variable setting */
-	size_t num = description.settings_size();
-	map<string, string> env = Environment::all();
+	size_t num = task.settings_size();
+	map<string, string> env = Environment::All();
 	
 	for (size_t i = 0; i < num; ++i)
 	{
-		Task::Description::KeyValue const &kv = description.settings(i);
+		Task::KeyValue const &kv = task.settings(i);
 
 		if (kv.key() != "environment")
 		{
 			continue;
 		}
 
-		vector<string> vars = String(kv.value()).split(",");
+		vector<string> vars = String(kv.value()).Split(",");
 		
 		for (vector<string>::iterator iter = vars.begin(); iter != vars.end(); ++iter)
 		{
-			vector<string> parts = String(*iter).strip().split("=", 2);
-			string key = String(parts[0]).strip();
+			vector<string> parts = String(*iter).Strip().Split("=", 2);
+			string key = String(parts[0]).Strip();
 			
 			if (parts.size() == 2)
 			{
-				env[key] = String(parts[1]).strip();
+				env[key] = String(parts[1]).Strip();
 			}
 			else if (parts.size() == 1)
 			{
@@ -119,9 +123,9 @@ Runner::Run(Task::Description const &description, string const &executable)
 
 	try
 	{
-		Glib::spawn_async_with_pipes(FileSystem::dirname(executable),
+		Glib::spawn_async_with_pipes(FileSystem::Dirname(executable),
 				                     argv,
-				                     Environment::convert(env),
+				                     Environment::Convert(env),
 				                     Glib::SPAWN_DO_NOT_REAP_CHILD,
 				                     sigc::slot<void>(),
 				                     &pid,
@@ -138,7 +142,7 @@ Runner::Run(Task::Description const &description, string const &executable)
 	/* Create pipe */
 	d_pipe = Pipe(stdout, stdin);
 	d_errorChannel = FileDescriptor(stderr);
-	d_errorChannel.attach();
+	d_errorChannel.Attach();
 
 	d_errorMessage = "";
 	
@@ -147,10 +151,10 @@ Runner::Run(Task::Description const &description, string const &executable)
 
 	d_connection = Glib::signal_child_watch().connect(sigc::mem_fun(*this, &Runner::OnDispatchedKilled), pid);
 
-	d_pipe.readEnd().onData().add(*this, &Runner::OnDispatchData);
-	d_errorChannel.onData().add(*this, &Runner::OnErrorData);
+	d_pipe.ReadEnd().OnData().Add(*this, &Runner::OnDispatchData);
+	d_errorChannel.OnData().Add(*this, &Runner::OnErrorData);
 
-	WriteTask(description);
+	WriteTask(task);
 	return true;
 }
 
@@ -161,10 +165,15 @@ Runner::Runner()
 }
 
 void
-Runner::WriteTask(Task::Description const &description)
+Runner::WriteTask(Task const &task)
 {
 	string serialized;
 
-	Messages::Create(description, serialized);
-	d_pipe.writeEnd().write(serialized);
+	Communication comm;
+
+	comm.set_type(Communication::CommunicationTask);
+	*comm.mutable_task() = task;
+
+	Messages::Create(comm, serialized);
+	d_pipe.WriteEnd().Write(serialized);
 }
