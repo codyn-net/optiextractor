@@ -1,4 +1,5 @@
 #include "runner.hh"
+#include "dispatcher.hh"
 
 #include <optimization/messages.hh>
 
@@ -6,16 +7,15 @@ using namespace std;
 using namespace optimization::messages::task;
 using namespace jessevdk::base;
 using namespace jessevdk::os;
+using namespace jessevdk::db;
 using namespace optimization;
+using namespace optiextractor;
 
 void
 Runner::Cancel()
 {
 	if (d_running)
 	{
-		Response response;
-		
-		response.mutable_failure()->set_type(Response::Failure::Disconnected);
 		DispatchClose();
 	}
 }
@@ -31,9 +31,9 @@ Runner::DispatchClose()
 	d_errorChannel.Close();
 
 	d_connection.disconnect();
-	
+
 	d_running = false;
-	
+
 	OnState(d_running);
 	d_errorMessage = "";
 }
@@ -43,9 +43,9 @@ Runner::OnDispatchData(FileDescriptor::DataArgs &args)
 {
 	vector<Communication> messages;
 	vector<Communication>::iterator iter;
-	
+
 	Messages::Extract(args, messages);
-	
+
 	for (iter = messages.begin(); iter != messages.end(); ++iter)
 	{
 		if (iter->type() == Communication::CommunicationResponse)
@@ -55,7 +55,7 @@ Runner::OnDispatchData(FileDescriptor::DataArgs &args)
 
 		break;
 	}
-	
+
 	return false;
 }
 
@@ -63,7 +63,7 @@ void
 Runner::OnDispatchedKilled(GPid pid, int ret)
 {
 	Glib::spawn_close_pid(pid);
-	
+
 	DispatchClose();
 }
 
@@ -74,14 +74,176 @@ Runner::OnErrorData(FileDescriptor::DataArgs &args)
 	return false;
 }
 
+void
+Runner::FillData(sqlite::SQLite database, size_t iteration, size_t solution, Task &task)
+{
+	// Set data
+	sqlite::Row data = database() << "SELECT * FROM `data` WHERE iteration = "
+	                              << iteration << " AND `index` = "
+	                              << solution << sqlite::SQLite::Query::End();
+
+	if (data && !data.Done())
+	{
+		sqlite::Row header = database("PRAGMA table_info(`data`)");
+		int i = 0;
+
+		while (header && !header.Done())
+		{
+			string name = header.Get<string>(1);
+
+			if (String(name).StartsWith("_d_"))
+			{
+				Task::KeyValue *kv = task.add_data();
+
+				kv->set_key(name.substr(3));
+				kv->set_value(data.Get<string>(i));
+			}
+
+			header.Next();
+			++i;
+		}
+	}
+}
+
+void
+Runner::FillParameters(sqlite::SQLite database, size_t iteration, size_t solution, Task &task)
+{
+	sqlite::Row names = database("PRAGMA table_info(`parameter_values`)");
+	vector<string> cols;
+	string colnames;
+
+	while (names && !names.Done())
+	{
+		string name = names.Get<string>(1);
+		names.Next();
+
+		if (!String(name).StartsWith("_p_"))
+		{
+			continue;
+		}
+
+		cols.push_back(name.substr(3));
+
+		if (colnames != "")
+		{
+			colnames += ", ";
+		}
+
+		colnames += "parameter_values.`" + name + "`";
+	}
+
+	if (colnames == "")
+	{
+		return;
+	}
+
+	sqlite::Row row = database() << "SELECT " << colnames << " FROM `parameter_values` WHERE "
+	                             << "parameter_values.`iteration` = " << iteration << " AND "
+	                             << "parameter_values.`index` = " << solution
+	                             << sqlite::SQLite::Query::End();
+
+	if (!row || row.Done())
+	{
+		return;
+	}
+
+	for (size_t i = 0; i < row.Length(); ++i)
+	{
+		Task::Parameter *parameter = task.add_parameters();
+
+		parameter->set_name(cols[i]);
+		parameter->set_value(row.Get<double>(i));
+
+		sqlite::Row row = database() << "SELECT `min`, `max` FROM boundaries WHERE "
+		                             << "boundaries.name = (SELECT parameters.boundary FROM parameters "
+		                             << " WHERE name = '" << cols[i] << "')"
+		                             << sqlite::SQLite::Query::End();
+
+		parameter->set_min(row.Get<double>(0));
+		parameter->set_max(row.Get<double>(1));
+	}
+}
+
+bool
+Runner::Run(sqlite::SQLite database, size_t iteration, size_t solution)
+{
+	Cancel();
+
+	Task task;
+	string dispatcher;
+
+	sqlite::Row job = database("SELECT name, optimizer, dispatcher FROM job");
+
+	task.set_job(job.Get<string>(0));
+	task.set_optimizer(job.Get<string>(1));
+	task.set_id(solution);
+
+	dispatcher = job.Get<string>(2);
+
+	FillParameters(database, iteration, solution, task);
+	FillData(database, iteration, solution, task);
+
+	// Dispatcher settings
+	std::map<std::string, std::string> settings;
+
+	settings["optiextractor"] = "yes";
+
+	sqlite::Row row = database("SELECT `name`, `value` FROM dispatcher");
+
+	while (row && !row.Done())
+	{
+		string name = row.Get<string>(0);
+		string value = row.Get<string>(1);
+
+		settings[name] = value;
+		row.Next();
+	}
+
+	// Override settings
+	row = database("SELECT `name`, `value` FROM optiextractor_overrides");
+
+	while (row && !row.Done())
+	{
+		string name = row.Get<string>(0);
+		string value = row.Get<string>(1);
+
+		if (name == "dispatcher")
+		{
+			dispatcher = value;
+		}
+		else
+		{
+			settings[name] = value;
+		}
+
+		row.Next();
+	}
+
+	for (std::map<string, string>::iterator it = settings.begin(); it != settings.end(); ++it)
+	{
+		Task::KeyValue *setting;
+		setting = task.add_settings();
+
+		setting->set_key(it->first);
+		setting->set_value(it->second);
+	}
+
+	task.set_dispatcher(dispatcher);
+
+	return Run(task, Dispatcher::Resolve(dispatcher));
+}
+
 bool
 Runner::Run(Task const &task, string const &executable)
 {
-	if (d_running)
+	Cancel();
+
+	if (executable == "")
 	{
-		DispatchClose();
+		d_errorMessage = "Could not find dispatcher";
+		return false;
 	}
-	
+
 	vector<string> argv;
 	argv.push_back(executable);
 
@@ -89,11 +251,11 @@ Runner::Run(Task const &task, string const &executable)
 	int stdin;
 	int stdout;
 	int stderr;
-	
+
 	/* Check for environment variable setting */
 	size_t num = task.settings_size();
 	map<string, string> env = Environment::All();
-	
+
 	for (size_t i = 0; i < num; ++i)
 	{
 		Task::KeyValue const &kv = task.settings(i);
@@ -104,12 +266,12 @@ Runner::Run(Task const &task, string const &executable)
 		}
 
 		vector<string> vars = String(kv.value()).Split(",");
-		
+
 		for (vector<string>::iterator iter = vars.begin(); iter != vars.end(); ++iter)
 		{
 			vector<string> parts = String(*iter).Strip().Split("=", 2);
 			string key = String(parts[0]).Strip();
-			
+
 			if (parts.size() == 2)
 			{
 				env[key] = String(parts[1]).Strip();
@@ -124,14 +286,14 @@ Runner::Run(Task const &task, string const &executable)
 	try
 	{
 		Glib::spawn_async_with_pipes(FileSystem::Dirname(executable),
-				                     argv,
-				                     Environment::Convert(env),
-				                     Glib::SPAWN_DO_NOT_REAP_CHILD,
-				                     sigc::slot<void>(),
-				                     &pid,
-				                     &stdin,
-				                     &stdout,
-				                     &stderr);
+		                             argv,
+		                             Environment::Convert(env),
+		                             Glib::SPAWN_DO_NOT_REAP_CHILD,
+		                             sigc::slot<void>(),
+		                             &pid,
+		                             &stdin,
+		                             &stdout,
+		                             &stderr);
 	}
 	catch (Glib::SpawnError &e)
 	{
@@ -145,7 +307,7 @@ Runner::Run(Task const &task, string const &executable)
 	d_errorChannel.Attach();
 
 	d_errorMessage = "";
-	
+
 	d_running = true;
 	OnState(d_running);
 

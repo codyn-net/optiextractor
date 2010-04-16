@@ -17,10 +17,14 @@ optiextractor_LDFLAGS = $(PACKAGE_OPTIEXTRACTOR_LIBS)
 optiextractor_SOURCES = \
 	optiextractor.cc \
 	application.cc \
-	runner.cc
+	runner.cc \
+	window.cc \
+	dispatcher.cc
 
 noinst_HEADERS = \
 	application.hh \
-	runner.hh
+	runner.hh \
+	window.hh \
+	dispatcher.hh
 
 EXTRA_DIST = $(noinst_HEADERS)
