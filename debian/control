@@ -5,7 +5,7 @@ Build-Depends: debhelper (>= 7),
                autotools-dev, 
                cdbs, 
                pkg-config,
-               liboptimization-dev (>= 1.1),
+               liboptimization2-dev (>= 2.0),
                libgtkmm-2.4-dev (>= 2.12)
 Standards-Version: 3.8.0
 Section: apps
@@ -14,6 +14,6 @@ Homepage: http://birg.epfl.ch
 Package: optiextractor
 Section: apps
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, liboptimization1 (>= 1.1), libgtkmm-2.4-1c2a (>= 2.12)
+Depends: ${shlibs:Depends}, ${misc:Depends}, liboptimization2 (>= 2.0), libgtkmm-2.4-1c2a (>= 2.12)
 Description: Optimization solution extractor
  Solution extractor for optimization results
