@@ -1,4 +1,4 @@
-AC_INIT(optiextractor, 1.0)
+AC_INIT(optiextractor1, 1.0)
 
 AM_INIT_AUTOMAKE([subdir-objects])
 

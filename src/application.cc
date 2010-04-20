@@ -392,7 +392,7 @@ Application::HandleRunnerStopped()
 void
 Application::InitializeUI()
 {
-	d_builder = Glib::RefPtr<Gtk::Builder>(Gtk::Builder::create_from_file(DATADIR "/optiextractor/window.xml"));
+	d_builder = Glib::RefPtr<Gtk::Builder>(Gtk::Builder::create_from_file(DATADIR "/optiextractor1/window.xml"));
 	d_builder->get_widget("window", d_window);
 	
 	/* Create menu */
