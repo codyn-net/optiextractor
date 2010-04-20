@@ -36,7 +36,7 @@ namespace optiextractor
 			void RunDispatcher(int &argc, char **&argv);
 
 			void RunnerState(bool running);
-			void RunnerResponse(optimization::messages::task::Response const &response);
+			void RunnerResponse(optimization::messages::task::Response response);
 	};
 }
 

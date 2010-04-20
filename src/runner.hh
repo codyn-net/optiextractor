@@ -31,7 +31,7 @@ namespace optiextractor
 			void Cancel();
 
 			jessevdk::base::signals::Signal<bool> OnState;
-			jessevdk::base::signals::Signal<optimization::messages::task::Response const &> OnResponse;
+			jessevdk::base::signals::Signal<optimization::messages::task::Response> OnResponse;
 		private:
 			/* Private functions */
 			void WriteTask(optimization::messages::task::Task const &task);

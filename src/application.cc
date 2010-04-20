@@ -98,7 +98,7 @@ Application::RunnerState(bool running)
 }
 
 void
-Application::RunnerResponse(Response const &response)
+Application::RunnerResponse(Response response)
 {
 	if (response.status() == Response::Failed)
 	{

@@ -50,7 +50,9 @@ Runner::OnDispatchData(FileDescriptor::DataArgs &args)
 	{
 		if (iter->type() == Communication::CommunicationResponse)
 		{
-			OnResponse(iter->response());
+			Response resp = iter->response();
+
+			OnResponse(resp);
 		}
 
 		break;
