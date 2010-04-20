@@ -11,10 +11,10 @@ INCLUDES = \
 	-DPKGDATADIR=\""$(pkgdatadir)"\" \
 	-DPKGLIBDIR=\""$(pkglibdir)"\"
 
-bin_PROGRAMS = optiextractor
-optiextractor_CFLAGS = -g $(PACKAGE_OPTIEXTRACTOR_CFLAGS)
-optiextractor_LDFLAGS = $(PACKAGE_OPTIEXTRACTOR_LIBS)
-optiextractor_SOURCES = \
+bin_PROGRAMS = optiextractor1
+optiextractor1_CFLAGS = -g $(PACKAGE_OPTIEXTRACTOR_CFLAGS)
+optiextractor1_LDFLAGS = $(PACKAGE_OPTIEXTRACTOR_LIBS)
+optiextractor1_SOURCES = \
 	optiextractor.cc \
 	application.cc \
 	runner.cc

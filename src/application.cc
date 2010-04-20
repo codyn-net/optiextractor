@@ -392,7 +392,7 @@ Application::HandleRunnerStopped()
 void
 Application::InitializeUI()
 {
-	d_builder = Glib::RefPtr<Gtk::Builder>(Gtk::Builder::create_from_file(DATADIR "/optiextractor/window.xml"));
+	d_builder = Glib::RefPtr<Gtk::Builder>(Gtk::Builder::create_from_file(DATADIR "/optiextractor1/window.xml"));
 	d_builder->get_widget("window", d_window);
 	
 	/* Create menu */
@@ -468,14 +468,13 @@ Application::OnDatabaseExport()
 
 	dialog->set_local_only(true);
 	
-	Gtk::FileFilter *filter = new Gtk::FileFilter();
+	Gtk::FileFilter *txtfilter = new Gtk::FileFilter();
 
-	filter->set_name("Matlab data text files (*.txt)");
-	filter->add_pattern("*.txt");
-	dialog->add_filter(*filter);
-	delete filter;
+	txtfilter->set_name("Matlab data text files (*.txt)");
+	txtfilter->add_pattern("*.txt");
+	dialog->add_filter(*txtfilter);
 	
-	filter = new Gtk::FileFilter();
+	Gtk::FileFilter *filter = new Gtk::FileFilter();
 	filter->set_name("All files (*)");
 	filter->add_pattern("*");
 	dialog->add_filter(*filter);
@@ -483,12 +482,22 @@ Application::OnDatabaseExport()
 
 	if (dialog->run() != Gtk::RESPONSE_OK)
 	{
+		delete txtfilter;
 		delete dialog;
 	
 		return;
 	}
 	
 	string filename = dialog->get_filename();
+	if (dialog->get_filter() && dialog->get_filter()->get_name() == txtfilter->get_name())
+	{
+		if (!String(filename).endsWith(".txt"))
+		{
+			filename += ".txt";
+		}
+	}
+	
+	delete txtfilter;
 	delete dialog;
 
 	ofstream fstr(filename.c_str(), ios::out);
@@ -558,8 +567,11 @@ Application::OnDatabaseExport()
 	
 	size_t totalnum = iterations * solutions;
 	string names = String::join(colnames, ", ");
-	
-	Row row = d_database.query("SELECT solution.`iteration`, solution.`index`, `values`, `velocity`, `value_names`, " + names + " FROM `solution` LEFT JOIN `fitness` ON (fitness.iteration = solution.iteration AND fitness.`index` = solution.`index`) ORDER BY solution.`iteration`, solution.`index`");
+
+	string optimizer = d_database.query("SELECT `value` FROM `settings` WHERE `name` = 'optimizer'").get<string>(0);
+	bool ispso = optimizer == "PSO" || optimizer == "DNPSO";
+
+	Row row = d_database.query(string("SELECT solution.`iteration`, solution.`index`, `values`, `value_names`") + (ispso ? ", `_velocity`" : "") + ", " + names + " FROM `solution` LEFT JOIN `fitness` ON (fitness.iteration = solution.iteration AND fitness.`index` = solution.`index`) ORDER BY solution.`iteration`, solution.`index`");
 	
 	bool header = false;
 	
@@ -570,7 +582,7 @@ Application::OnDatabaseExport()
 			if (!header)
 			{
 				size_t num = String(row.get<string>(2)).split(",").size();
-				string nm = String::join(String(row.get<string>(4)).split(","), "\t");
+				string nm = String::join(String(row.get<string>(3)).split(","), "\t");
 				string fitnm = String::join(fitnesses, "\t");
 				
 				fstr << num << "\t" << iterations << "\t" << solutions << "\t" << nm << "\t" << fitnm << endl;
@@ -581,14 +593,20 @@ Application::OnDatabaseExport()
 			}
 			
 			fstr << row.get<size_t>(0) << "\t" << row.get<size_t>(1);
-			
-			for (size_t i = 5; i < 5 + fitnesses.size(); ++i)
+			size_t start = ispso ? 5 : 4;
+
+			for (size_t i = start; i < start + fitnesses.size(); ++i)
 			{
 				fstr << row.get<string>(i);
 			}
 			
 			fstr << String::join(String(row.get<string>(2)).split(","), "\t");
-			fstr << String::join(String(row.get<string>(3)).split(","), "\t");
+			
+			if (ispso)
+			{
+				fstr << String::join(String(row.get<string>(4)).split(","), "\t");
+			}
+
 			fstr << endl;
 
 			row.next();
@@ -908,7 +926,9 @@ Application::RunSolution()
 	/* Set dispatcher settings */
 	store = Get<Gtk::ListStore>("list_store_dispatcher");
 	std::map<std::string, std::string> settings;
-	
+
+	settings["optiextractor"] = "yes";
+
 	for (iter = store->children().begin(); iter != store->children().end(); ++iter)
 	{
 		Gtk::TreeRow r = *iter;
