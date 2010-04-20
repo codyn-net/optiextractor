@@ -154,15 +154,25 @@ Runner::FillParameters(sqlite::SQLite database, size_t iteration, size_t solutio
 		Task::Parameter *parameter = task.add_parameters();
 
 		parameter->set_name(cols[i]);
-		parameter->set_value(row.Get<double>(i));
+		parameter->set_value(String(row.Get<string>(i)));
 
 		sqlite::Row row = database() << "SELECT `min`, `max` FROM boundaries WHERE "
 		                             << "boundaries.name = (SELECT parameters.boundary FROM parameters "
 		                             << " WHERE name = '" << cols[i] << "')"
 		                             << sqlite::SQLite::Query::End();
 
-		parameter->set_min(row.Get<double>(0));
-		parameter->set_max(row.Get<double>(1));
+		if (row && !row.Done())
+		{
+			parameter->set_min(row.Get<double>(0));
+			parameter->set_max(row.Get<double>(1));
+		}
+		else
+		{
+			cerr << "Could not read parameter boundary: '" << cols[i] << "'" << endl;
+			
+			parameter->set_min(0);
+			parameter->set_max(0);
+		}
 	}
 }
 
