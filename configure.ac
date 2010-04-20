@@ -1,4 +1,4 @@
-AC_INIT(optiextractor, 2.0)
+AC_INIT(optiextractor, 2.1)
 
 AM_INIT_AUTOMAKE([subdir-objects])
 
@@ -24,7 +24,7 @@ PKG_CHECK_MODULES(PACKAGE_OPTIEXTRACTOR, [
 ])
 
 if test "x$USE_MAINTAINER_MODE" = "xyes"; then
-PACKAGE_OPTIEXTRACTOR_CFLAGS="$PACKAGE_OPTIEXTRACTOR_CFLAGS -Wall -Werror -Wuninitialized -Wmissing-declarations"
+PACKAGE_OPTIEXTRACTOR_CFLAGS="$PACKAGE_OPTIEXTRACTOR_CFLAGS -Wall -Werror -Wuninitialized -O2 -g"
 fi
 
 AC_SUBST(PACKAGE_OPTIEXTRACTOR_CFLAGS)
