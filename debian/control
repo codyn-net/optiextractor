@@ -1,4 +1,4 @@
-Source: optiextractor
+Source: optiextractor1
 Priority: extra
 Maintainer: Jesse van den Kieboom <jesse.vandenkieboom@epfl.ch>
 Build-Depends: debhelper (>= 7), 
@@ -11,7 +11,7 @@ Standards-Version: 3.8.0
 Section: apps
 Homepage: http://birg.epfl.ch
 
-Package: optiextractor
+Package: optiextractor1
 Section: apps
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}, liboptimization1 (>= 1.1), libgtkmm-2.4-1c2a (>= 2.12)
