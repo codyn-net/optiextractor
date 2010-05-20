@@ -1,4 +1,5 @@
 #include "window.hh"
+#include "exporter.hh"
 
 #include <jessevdk/os/os.hh>
 
@@ -36,6 +37,7 @@ Window::Clear()
 	Get<Gtk::ListStore>("list_store_parameters")->clear();
 	Get<Gtk::ListStore>("list_store_boundaries")->clear();
 	Get<Gtk::ListStore>("list_store_solutions")->clear();
+	Get<Gtk::ListStore>("list_store_solution_fitness")->clear();
 	Get<Gtk::ListStore>("list_store_override")->clear();
 	Get<Gtk::ListStore>("list_store_log")->clear();
 
@@ -43,7 +45,6 @@ Window::Clear()
 	Get<Gtk::Label>("label_summary_time")->set_text("");
 	Get<Gtk::Label>("label_summary_best")->set_text("");
 
-	Get<Gtk::Label>("label_solution_fitness")->set_text("");
 	Get<Gtk::Label>("label_solution_iteration")->set_text("");
 	Get<Gtk::Label>("label_solution_solution")->set_text("");
 
@@ -396,7 +397,16 @@ Window::HandleRunnerStopped()
 void
 Window::InitializeUI()
 {
-	d_builder = Glib::RefPtr<Gtk::Builder>(Gtk::Builder::create_from_file(DATADIR "/optiextractor/window.xml"));
+	try
+	{
+		d_builder = Glib::RefPtr<Gtk::Builder>(Gtk::Builder::create_from_file(DATADIR "/optiextractor/window.xml"));
+	}
+	catch (Gtk::BuilderError &error)
+	{
+		cerr << "Could not construct interface: " << error.what() << endl;
+		exit(1);
+	}
+
 	d_builder->get_widget("window", d_window);
 
 	/* Create menu */
@@ -508,109 +518,8 @@ Window::OnDatabaseExport()
 		return;
 	}
 
-	size_t iterations = d_database("SELECT COUNT(*) FROM `solution` GROUP BY `index`").Get<size_t>(0);
-	size_t solutions = d_database("SELECT COUNT(*) FROM `solution`").Get<size_t>(0);
-
-	/* Collect fitness names */
-	sqlite::Row cols = d_database("PRAGMA table_info(`fitness`)");
-	vector<string> fitnesses;
-	vector<string> colnames;
-
-	fitnesses.push_back("value");
-	colnames.push_back("`fitness`.value");
-
-	if (!cols.Done())
-	{
-		while (cols)
-		{
-			String name = cols.Get<string>(1);
-
-			if (name.StartsWith("_"))
-			{
-				fitnesses.push_back(name);
-				colnames.push_back("`fitness`." + name);
-			}
-
-			cols.Next();
-		}
-	}
-
-	if (fitnesses.size() == 2)
-	{
-		fitnesses.erase(fitnesses.begin() + 1);
-		colnames.erase(colnames.begin() + 1);
-	}
-
-	vector<string> boundaries;
-
-	Glib::RefPtr<Gtk::ListStore> store = Get<Gtk::ListStore>("list_store_boundaries");
-	Gtk::TreeModel::iterator iter;
-
-	for (iter = store->children().begin(); iter != store->children().end(); ++iter)
-	{
-		for (size_t i = 0; i < 3; ++i)
-		{
-			string value;
-			(*iter)->get_value(i, value);
-			boundaries.push_back(value);
-		}
-	}
-
-	std::map<std::string, std::string>::iterator it;
-	vector<string> parameters;
-
-	for (it = d_parameterMap.begin(); it != d_parameterMap.end(); ++it)
-	{
-		parameters.push_back(it->first);
-		parameters.push_back(it->second);
-	}
-
-	string names = String::Join(colnames, ", ");
-
-	string optimizer = d_database("SELECT `optimizer` FROM `job`").Get<string>(0);
-	bool ispso = optimizer == "PSO" || optimizer == "DNPSO";
-
-	sqlite::Row row = d_database(string("SELECT solution.`iteration`, solution.`index`, `values`, `value_names`") + (ispso ? ", `_velocity`" : "") + ", " + names + " FROM `solution` LEFT JOIN `fitness` ON (fitness.iteration = solution.iteration AND fitness.`index` = solution.`index`) ORDER BY solution.`iteration`, solution.`index`");
-
-	bool header = false;
-
-	if (!row.Done())
-	{
-		while (row)
-		{
-			if (!header)
-			{
-				size_t num = String(row.Get<string>(2)).Split(",").size();
-				string nm = String::Join(String(row.Get<string>(3)).Split(","), "\t");
-				string fitnm = String::Join(fitnesses, "\t");
-
-				fstr << num << "\t" << iterations << "\t" << solutions << "\t" << nm << "\t" << fitnm << endl;
-				fstr << String::Join(boundaries, "\t") << endl;
-				fstr << String::Join(parameters, "\t") << endl;
-
-				header = true;
-			}
-
-			fstr << row.Get<size_t>(0) << "\t" << row.Get<size_t>(1);
-			size_t start = ispso ? 5 : 4;
-
-			for (size_t i = start; i < start + fitnesses.size(); ++i)
-			{
-				fstr << row.Get<string>(i);
-			}
-
-			fstr << String::Join(String(row.Get<string>(2)).Split(","), "\t");
-
-			if (ispso)
-			{
-				fstr << String::Join(String(row.Get<string>(4)).Split(","), "\t");
-			}
-
-			fstr << endl;
-
-			row.Next();
-		}
-	}
+	Exporter exporter(fstr, d_database);
+	exporter.Export();
 
 	fstr.close();
 }
@@ -849,12 +758,14 @@ Window::RunSolution()
 void
 Window::SolutionChanged()
 {
-	Get<Gtk::Label>("label_solution_fitness")->set_text("");
 	Get<Gtk::Label>("label_solution_iteration")->set_text("");
 	Get<Gtk::Label>("label_solution_solution")->set_text("");
 
-	Glib::RefPtr<Gtk::ListStore> store = Get<Gtk::ListStore>("list_store_solutions");
-	store->clear();
+	Glib::RefPtr<Gtk::ListStore> store_solutions = Get<Gtk::ListStore>("list_store_solutions");
+	store_solutions->clear();
+
+	Glib::RefPtr<Gtk::ListStore> store_fitness = Get<Gtk::ListStore>("list_store_solution_fitness");
+	store_fitness->clear();
 
 	d_solutionId = 0;
 	d_iterationId = 0;
@@ -948,17 +859,48 @@ Window::SolutionChanged()
 		Get<Gtk::Label>("label_solution_solution")->set_text(s.str());
 	}
 
-	Get<Gtk::Label>("label_solution_fitness")->set_text(row.Get<string>(2));
-
 	for (size_t i = 0; i < cols.size(); ++i)
 	{
-		Gtk::TreeRow r = *(store->append());
+		Gtk::TreeRow r = *(store_solutions->append());
 
 		string name = cols[i];
 		string value = row.Get<string>(i + 3);
 
 		r.set_value(0, name);
 		r.set_value(1, value);
+	}
+
+	row = d_database() << "SELECT * FROM fitness"
+	                   << " WHERE `iteration` = " << d_iterationId
+	                   << " AND `index` = " << d_solutionId
+	                   << sqlite::SQLite::Query::End();
+
+	if (row && !row.Done())
+	{
+		names = d_database("PRAGMA table_info(`fitness`)");
+
+		while (names && !names.Done())
+		{
+			string name = names.Get<string>(1);
+
+			if (String(name).StartsWith("_f_") || name == "value")
+			{
+				Gtk::TreeRow r = *(store_fitness->append());
+
+				if (name != "value")
+				{
+					r.set_value(0, name.substr(3));
+				}
+				else
+				{
+					r.set_value(0, string("Fitness"));
+				}
+
+				r.set_value(1, row.Get<string>(name));
+			}
+
+			names.Next();
+		}
 	}
 }
 

@@ -21,6 +21,8 @@ namespace optiextractor
 		Runner d_runner;
 		Glib::RefPtr<Glib::MainLoop> d_main;
 		bool d_responded;
+		bool d_export;
+		Glib::ustring d_exportout;
 
 		public:
 			/* Constructor/destructor */
@@ -34,6 +36,8 @@ namespace optiextractor
 			void RunOverride(int &argc, char **&argv);
 			void RunOverride(std::string const &filename);
 			void RunDispatcher(int &argc, char **&argv);
+			void RunExporter(int &argc, char **&argv);
+			void RunExporter(std::string const &filename, std::string const &outfile);
 
 			void RunnerState(bool running);
 			void RunnerResponse(optimization::messages::task::Response response);

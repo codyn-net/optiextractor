@@ -1,5 +1,6 @@
 #include "application.hh"
 #include "window.hh"
+#include "exporter.hh"
 
 #include <jessevdk/os/os.hh>
 #include <jessevdk/db/db.hh>
@@ -15,7 +16,8 @@ Application::Application(int &argc, char **&argv)
 	d_run(false),
 	d_iteration(-1),
 	d_solution(-1),
-	d_responded(false)
+	d_responded(false),
+	d_export(false)
 {
 	ParseArguments(argc, argv);
 }
@@ -31,10 +33,91 @@ Application::Run(int &argc, char **&argv)
 	{
 		RunDispatcher(argc, argv);
 	}
+	else if (d_export)
+	{
+		RunExporter(argc, argv);
+	}
 	else
 	{
 		RunWindow(argc, argv);
 	}
+}
+
+void
+Application::RunExporter(int &argc, char **&argv)
+{
+	if (argc <= 1)
+	{
+		cerr << "Please provide a database" << endl;
+		return;
+	}
+
+	for (int i = 1; i < argc; ++i)
+	{
+		string filename = argv[i];
+		string outfile;
+
+		if (d_exportout != "")
+		{
+			if (argc > 2)
+			{
+				stringstream s;
+				s << d_exportout << "." << i;
+
+				outfile = s.str();
+			}
+			else
+			{
+				outfile = d_exportout;
+			}
+		}
+		else
+		{
+			outfile = filename + ".txt";
+		}
+
+		RunExporter(argv[i], outfile);
+	}
+}
+
+void
+Application::RunExporter(string const &filename, string const &outfile)
+{
+	if (!FileSystem::FileExists(filename))
+	{
+		cerr << "The file '" + filename + "' does not exist. Please make sure you open a valid optimization results database." << endl;
+		return;
+	}
+
+	sqlite::SQLite database(filename);
+
+	if (!database)
+	{
+		cerr << "Database '" << filename << "'could not be opened. Please make sure the file is a valid optimization results database." << endl;
+		return;
+	}
+
+	// Do a quick test query
+	sqlite::Row row = database("PRAGMA table_info(settings)");
+
+	if (!database("PRAGMA quick_check") || (!row || row.Done()))
+	{
+		cerr << "Database could not be opened. The file '" << filename << "' could not be opened. Please make sure the file is a valid optimization results database." << endl;
+		return;
+	}
+
+	ofstream fstr(outfile.c_str(), ios::out);
+
+	if (!fstr)
+	{
+		cerr << "Could not open output file `" << outfile << "` for writing..." << endl;
+		return;
+	}
+
+	Exporter exporter(fstr, database);
+	exporter.Export();
+
+	fstr.close();
 }
 
 void
@@ -55,6 +138,7 @@ Application::RunDispatcher(int &argc, char **&argv)
 	if (argc <= 1)
 	{
 		cerr << "Please provide a database" << endl;
+		return;
 	}
 
 	string filename = argv[1];
@@ -284,6 +368,22 @@ Application::ParseArguments(int &argc, char **&argv)
 	solution.set_description("The solution to run");
 
 	group.add_entry(solution, d_solution);
+
+	// Export database
+	Glib::OptionEntry exprt;
+	exprt.set_long_name("export");
+	exprt.set_short_name('e');
+	exprt.set_description("Export the database to a text file");
+
+	group.add_entry(exprt, d_export);
+
+	// Export database output
+	Glib::OptionEntry exprtout;
+	exprtout.set_long_name("output");
+	exprtout.set_short_name('o');
+	exprtout.set_description("Export output file");
+
+	group.add_entry(exprtout, d_exportout);
 
 	Glib::OptionContext context;
 
