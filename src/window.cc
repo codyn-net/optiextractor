@@ -36,6 +36,7 @@ Window::Clear()
 	Get<Gtk::ListStore>("list_store_parameters")->clear();
 	Get<Gtk::ListStore>("list_store_boundaries")->clear();
 	Get<Gtk::ListStore>("list_store_solutions")->clear();
+	Get<Gtk::ListStore>("list_store_solution_fitness")->clear();
 	Get<Gtk::ListStore>("list_store_override")->clear();
 	Get<Gtk::ListStore>("list_store_log")->clear();
 
@@ -43,7 +44,6 @@ Window::Clear()
 	Get<Gtk::Label>("label_summary_time")->set_text("");
 	Get<Gtk::Label>("label_summary_best")->set_text("");
 
-	Get<Gtk::Label>("label_solution_fitness")->set_text("");
 	Get<Gtk::Label>("label_solution_iteration")->set_text("");
 	Get<Gtk::Label>("label_solution_solution")->set_text("");
 
@@ -396,7 +396,16 @@ Window::HandleRunnerStopped()
 void
 Window::InitializeUI()
 {
-	d_builder = Glib::RefPtr<Gtk::Builder>(Gtk::Builder::create_from_file(DATADIR "/optiextractor/window.xml"));
+	try
+	{
+		d_builder = Glib::RefPtr<Gtk::Builder>(Gtk::Builder::create_from_file(DATADIR "/optiextractor/window.xml"));
+	}
+	catch (Gtk::BuilderError &error)
+	{
+		cerr << "Could not construct interface: " << error.what() << endl;
+		exit(1);
+	}
+
 	d_builder->get_widget("window", d_window);
 
 	/* Create menu */
@@ -849,12 +858,14 @@ Window::RunSolution()
 void
 Window::SolutionChanged()
 {
-	Get<Gtk::Label>("label_solution_fitness")->set_text("");
 	Get<Gtk::Label>("label_solution_iteration")->set_text("");
 	Get<Gtk::Label>("label_solution_solution")->set_text("");
 
-	Glib::RefPtr<Gtk::ListStore> store = Get<Gtk::ListStore>("list_store_solutions");
-	store->clear();
+	Glib::RefPtr<Gtk::ListStore> store_solutions = Get<Gtk::ListStore>("list_store_solutions");
+	store_solutions->clear();
+
+	Glib::RefPtr<Gtk::ListStore> store_fitness = Get<Gtk::ListStore>("list_store_solution_fitness");
+	store_fitness->clear();
 
 	d_solutionId = 0;
 	d_iterationId = 0;
@@ -948,17 +959,48 @@ Window::SolutionChanged()
 		Get<Gtk::Label>("label_solution_solution")->set_text(s.str());
 	}
 
-	Get<Gtk::Label>("label_solution_fitness")->set_text(row.Get<string>(2));
-
 	for (size_t i = 0; i < cols.size(); ++i)
 	{
-		Gtk::TreeRow r = *(store->append());
+		Gtk::TreeRow r = *(store_solutions->append());
 
 		string name = cols[i];
 		string value = row.Get<string>(i + 3);
 
 		r.set_value(0, name);
 		r.set_value(1, value);
+	}
+
+	row = d_database() << "SELECT * FROM fitness"
+	                   << " WHERE `iteration` = " << d_iterationId
+	                   << " AND `index` = " << d_solutionId
+	                   << sqlite::SQLite::Query::End();
+
+	if (row && !row.Done())
+	{
+		names = d_database("PRAGMA table_info(`fitness`)");
+
+		while (names && !names.Done())
+		{
+			string name = names.Get<string>(1);
+
+			if (String(name).StartsWith("_f_") || name == "value")
+			{
+				Gtk::TreeRow r = *(store_fitness->append());
+
+				if (name != "value")
+				{
+					r.set_value(0, name.substr(3));
+				}
+				else
+				{
+					r.set_value(0, string("Fitness"));
+				}
+
+				r.set_value(1, row.Get<string>(name));
+			}
+
+			names.Next();
+		}
 	}
 }
 

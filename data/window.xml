@@ -52,6 +52,14 @@
       <column type="gchararray"/>
     </columns>
   </object>
+  <object class="GtkListStore" id="list_store_solution_fitness">
+    <columns>
+      <!-- column-name name -->
+      <column type="gchararray"/>
+      <!-- column-name value -->
+      <column type="gchararray"/>
+    </columns>
+  </object>
   <object class="GtkListStore" id="list_store_override">
     <columns>
       <!-- column-name name -->
@@ -204,6 +212,7 @@
                                 <property name="headers_clickable">False</property>
                                 <property name="rules_hint">True</property>
                                 <property name="search_column">0</property>
+                                <property name="headers_visible">False</property>
                                 <child>
                                   <object class="GtkTreeViewColumn" id="treeviewcolumn1">
                                     <property name="resizable">True</property>
@@ -271,6 +280,7 @@
                                 <property name="headers_clickable">False</property>
                                 <property name="rules_hint">True</property>
                                 <property name="search_column">0</property>
+                                <property name="headers_visible">False</property>
                                 <child>
                                   <object class="GtkTreeViewColumn" id="treeviewcolumn8">
                                     <property name="resizable">True</property>
@@ -338,6 +348,7 @@
                                 <property name="headers_clickable">False</property>
                                 <property name="rules_hint">True</property>
                                 <property name="search_column">0</property>
+                                <property name="headers_visible">False</property>
                                 <child>
                                   <object class="GtkTreeViewColumn" id="treeviewcolumn10">
                                     <property name="resizable">True</property>
@@ -421,6 +432,7 @@
                                 <property name="headers_clickable">False</property>
                                 <property name="rules_hint">True</property>
                                 <property name="search_column">0</property>
+                                <property name="headers_visible">False</property>
                                 <child>
                                   <object class="GtkTreeViewColumn" id="treeviewcolumn3">
                                     <property name="resizable">True</property>
@@ -500,6 +512,7 @@
                                 <property name="headers_clickable">False</property>
                                 <property name="rules_hint">True</property>
                                 <property name="search_column">0</property>
+                                <property name="headers_visible">False</property>
                                 <child>
                                   <object class="GtkTreeViewColumn" id="treeviewcolumn6">
                                     <property name="resizable">True</property>
@@ -668,22 +681,59 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel" id="label_solution_fitness">
+                      <object class="GtkScrolledWindow" id="scrolled_window_solution_fitness">
                         <property name="visible">True</property>
-                        <property name="xalign">0</property>
+                        <property name="can_focus">True</property>
+                        <property name="hscrollbar_policy">automatic</property>
+                        <property name="vscrollbar_policy">automatic</property>
+                        <property name="shadow_type">etched-in</property>
+                        <child>
+                          <object class="GtkTreeView" id="tree_view_solution_fitness">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="model">list_store_solution_fitness</property>
+                            <property name="headers_clickable">False</property>
+                            <property name="rules_hint">True</property>
+                            <property name="search_column">0</property>
+                            <property name="headers_visible">False</property>
+                            <child>
+                              <object class="GtkTreeViewColumn" id="tree_view_column_solution_fitness_name">
+                                <property name="min_width">200</property>
+                                <property name="title">Name</property>
+                                <child>
+                                  <object class="GtkCellRendererText" id="cell_renderer_text_solution_fitness_name"/>
+                                  <attributes>
+                                    <attribute name="text">0</attribute>
+                                  </attributes>
+                                </child>
+                              </object>
+                            </child>
+                            <child>
+                              <object class="GtkTreeViewColumn" id="tree_view_column_solution_fitness_value">
+                                <property name="title">Value</property>
+                                <child>
+                                  <object class="GtkCellRendererText" id="cell_renderer_text_solution_fitness_value"/>
+                                  <attributes>
+                                    <attribute name="text">1</attribute>
+                                  </attributes>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                        </child>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
                         <property name="right_attach">2</property>
                         <property name="top_attach">2</property>
                         <property name="bottom_attach">3</property>
-                        <property name="y_options">GTK_SHRINK | GTK_FILL</property>
                       </packing>
                     </child>
                     <child>
                       <object class="GtkLabel" id="label4">
                         <property name="visible">True</property>
                         <property name="xalign">0</property>
+                        <property name="yalign">0</property>
                         <property name="label" translatable="yes">Fitness:</property>
                       </object>
                       <packing>
@@ -722,6 +772,7 @@
                             <property name="headers_clickable">False</property>
                             <property name="rules_hint">True</property>
                             <property name="search_column">0</property>
+                            <property name="headers_visible">False</property>
                             <child>
                               <object class="GtkTreeViewColumn" id="treeviewcolumn12">
                                 <property name="min_width">200</property>
@@ -813,6 +864,7 @@ settings:</property>
                                 <property name="headers_clickable">False</property>
                                 <property name="rules_hint">True</property>
                                 <property name="search_column">0</property>
+                                <property name="headers_visible">False</property>
                                 <child>
                                   <object class="GtkTreeViewColumn" id="treeviewcolumn14">
                                     <property name="min_width">150</property>
