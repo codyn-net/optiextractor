@@ -108,7 +108,17 @@ Exporter::ExportFitnessSettings()
 	{
 		while (row && !row.Done())
 		{
-			Write(row.Get<string>(0), row.Get<string>(1));
+			string val;
+
+			try
+			{
+				val = row.Get<string>(1);
+			}
+			catch (...)
+			{
+			}
+
+			Write(row.Get<string>(0), val);
 			row.Next();
 		}
 	}
@@ -167,7 +177,7 @@ Exporter::ExportIterations()
 }
 
 void
-Exporter::WriteNames(std::string const &name, jessevdk::db::sqlite::Row row, std::string const &prefix)
+Exporter::WriteNames(string const &name, jessevdk::db::sqlite::Row row, string const &prefix, string const &additional)
 {
 	bool first = true;
 
@@ -189,6 +199,16 @@ Exporter::WriteNames(std::string const &name, jessevdk::db::sqlite::Row row, std
 		}
 
 		row.Next();
+	}
+
+	if (additional != "")
+	{
+		if (!first)
+		{
+			d_stream << ", ";
+		}
+
+		d_stream << Serialize(additional);
 	}
 
 	d_stream << "}" << endl;
@@ -225,7 +245,7 @@ Exporter::ExportSolutions()
 	End();
 
 	// Write the fitness names
-	WriteNames("fitness_names", d_database("PRAGMA table_info(fitness)"), "_f_");
+	WriteNames("fitness_names", d_database("PRAGMA table_info(fitness)"), "_f_", "value");
 
 	row = d_database("SELECT * FROM fitness ORDER BY iteration, `index`");
 
@@ -238,10 +258,12 @@ Exporter::ExportSolutions()
 		{
 			vector<double> v;
 
-			for (size_t i = 2; i < row.Length(); ++i)
+			for (size_t i = 3; i < row.Length(); ++i)
 			{
 				v.push_back(row.Get<double>(i));
 			}
+
+			v.push_back(row.Get<double>(2));
 
 			d_stream << Indentation() << Serialize(v) << endl;
 			row.Next();
@@ -300,7 +322,7 @@ Exporter::End()
 }
 
 string
-Exporter::Serialize(std::string const &v) const
+Exporter::Serialize(string const &v) const
 {
 	return "'" + String(v).Replace("'", "''") + "'";
 }
@@ -334,5 +356,5 @@ Exporter::NormalizeName(string const &name) const
 {
 	String ret(name);
 
-	return ret.Replace("-", "_");
+	return ret.Replace("-", "_").Replace(" ", "_").Replace(":", "_").Replace(".", "_");
 }

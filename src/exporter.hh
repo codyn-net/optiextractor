@@ -49,7 +49,7 @@ namespace optiextractor
 			std::string SerializeStream(T const &v) const;
 
 			std::string NormalizeName(std::string const &name) const;
-			void WriteNames(std::string const &name, jessevdk::db::sqlite::Row row, std::string const &prefix);
+			void WriteNames(std::string const &name, jessevdk::db::sqlite::Row row, std::string const &prefix, std::string const &additional = "");
 
 			void ExportIterations();
 	};
