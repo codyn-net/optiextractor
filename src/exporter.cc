@@ -356,5 +356,5 @@ Exporter::NormalizeName(string const &name) const
 {
 	String ret(name);
 
-	return ret.Replace("-", "_");
+	return ret.Replace("-", "_").Replace(" ", "_").Replace(":", "_").Replace(".", "_");
 }
