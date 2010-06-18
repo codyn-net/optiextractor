@@ -15,8 +15,10 @@ function db = load_opti_db(filename)
 	popsize = db.population_size;
 	iterations = db.iterations;
 
-	db.parameter_values = permute(reshape(db.parameter_values, popsize, iterations, size(db.parameter_values, 2)), [2 1 3]);
-	db.fitness_values = permute(reshape(db.fitness_values, popsize, iterations, size(db.fitness_values, 2)), [2 1 3]);
+    if db.job.optimizer ~= 'Systematic'
+        db.parameter_values = permute(reshape(db.parameter_values, popsize, iterations, size(db.parameter_values, 2)), [2 1 3]);
+        db.fitness_values = permute(reshape(db.fitness_values, popsize, iterations, size(db.fitness_values, 2)), [2 1 3]);
+    end
 end
 
 function [ret, lineno, data] = parse_struct(fd, line, level, lineno, data)
