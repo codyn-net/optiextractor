@@ -275,6 +275,9 @@ Exporter::ExportSolutions()
 
 	// Matrix matrix
 	d_stream << Indentation() << "data_values: {}" << endl;
+
+	row = d_database("SELECT * FROM data ORDER BY iteration, `index`");
+
 	Begin();
 	{
 		while (row && !row.Done())
