@@ -449,7 +449,10 @@ Window::InitializeUI()
 	Gtk::Widget *menu = d_uiManager->get_widget("/ui/MenuBar");
 	Get<Gtk::VBox>("vbox_main")->pack_start(*menu, Gtk::PACK_SHRINK);
 
+	Get<Gtk::Range>("hscale_solution")->set_increments(1, 10);
 	Get<Gtk::Range>("hscale_solution")->signal_value_changed().connect(sigc::mem_fun(*this, &Window::SolutionChanged));
+
+	Get<Gtk::Range>("hscale_iteration")->set_increments(1, 10);
 	Get<Gtk::Range>("hscale_iteration")->signal_value_changed().connect(sigc::mem_fun(*this, &Window::SolutionChanged));
 
 	Get<Gtk::Button>("button_execute")->signal_clicked().connect(sigc::mem_fun(*this, &Window::ExecuteClicked));
