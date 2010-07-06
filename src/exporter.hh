@@ -5,18 +5,20 @@
 #include <jessevdk/db/sqlite.hh>
 #include <sstream>
 #include <vector>
+#include <matio.h>
+#include <stack>
 
 namespace optiextractor
 {
 	class Exporter
 	{
-		std::ostream &d_stream;
+		std::string d_filename;
 		jessevdk::db::sqlite::SQLite &d_database;
-		size_t d_level;
-		std::string d_indentation;
+		std::stack<matvar_t *> d_structures;
+		mat_t *d_matlab;
 
 		public:
-			Exporter(std::ostream &ostr, jessevdk::db::sqlite::SQLite &database);
+			Exporter(std::string const &filename, jessevdk::db::sqlite::SQLite &database);
 
 			void Export();
 		private:
@@ -32,62 +34,28 @@ namespace optiextractor
 			void Begin(std::string const &name = "");
 			void End();
 
-			std::string Indentation() const;
-
 			template <typename T>
 			void Write(std::string const &name, T const &t);
 
-			template <typename T>
-			std::string Serialize(std::vector<T> const &v) const;
-
-			std::string Serialize(std::string const &v) const;
-			std::string Serialize(double v) const;
-			std::string Serialize(size_t v) const;
-			std::string Serialize(int v) const;
-
-			template <typename T>
-			std::string SerializeStream(T const &v) const;
+			matvar_t *Serialize(std::string const &nm, std::string const &v) const;
+			matvar_t *Serialize(std::string const &nm, double v) const;
+			matvar_t *Serialize(std::string const &nm, size_t v) const;
+			matvar_t *Serialize(std::string const &nm, int v) const;
 
 			std::string NormalizeName(std::string const &name) const;
+
 			void WriteNames(std::string const &name, jessevdk::db::sqlite::Row row, std::string const &prefix, std::string const &additional = "");
 
 			void ExportIterations();
+
+			void Write(matvar_t *var);
 	};
 
 	template <typename T>
 	void
 	Exporter::Write(std::string const &name, T const &t)
 	{
-		d_stream << Indentation() << NormalizeName(name) << ": " << Serialize(t) << std::endl;
-	}
-
-	template <typename T>
-	std::string
-	Exporter::Serialize(std::vector<T> const &v) const
-	{
-		std::stringstream s;
-
-		for (typename std::vector<T>::const_iterator iter = v.begin(); iter != v.end(); ++iter)
-		{
-			if (s.str() != "")
-			{
-				s << ", ";
-			}
-
-			s << Serialize(*iter);
-		}
-
-		return "[" + s.str() + "]";
-	}
-
-	template <typename T>
-	std::string
-	Exporter::SerializeStream(T const &v) const
-	{
-		std::stringstream s;
-
-		s << v;
-		return s.str();
+		Write(Serialize(NormalizeName(name), t));
 	}
 }
 

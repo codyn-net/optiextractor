@@ -7,18 +7,18 @@ using namespace std;
 using namespace jessevdk::db::sqlite;
 using namespace jessevdk::base;
 
-Exporter::Exporter(ostream &ostr, SQLite &database)
+Exporter::Exporter(std::string const &filename, SQLite &database)
 :
-	d_stream(ostr),
-	d_database(database),
-	d_level(0)
+	d_filename(filename),
+	d_database(database)
 {
-	d_stream << setprecision(5);
 }
 
 void
 Exporter::Export()
 {
+	d_matlab = Mat_Create (d_filename.c_str(), NULL);
+
 	Row row = d_database("SELECT MAX(iteration) FROM solution");
 
 	if (row && !row.Done())
@@ -41,6 +41,8 @@ Exporter::Export()
 	ExportJob();
 	ExportIterations();
 	ExportSolutions();
+
+	Mat_Close (d_matlab);
 }
 
 void
@@ -173,15 +175,21 @@ Exporter::ExportIterations()
 		row.Next();
 	}
 
-	Write("iteration_times", times);
+	int dims[2] = {1, times.size()};
+	int data[times.size()];
+
+	for (size_t i = 0; i < times.size(); ++i)
+	{
+		data[i] = times[i];
+	}
+
+	Write(Mat_VarCreate ("iteration_times", MAT_C_INT32, MAT_T_INT32, 2, dims, data, 0));
 }
 
 void
 Exporter::WriteNames(string const &name, jessevdk::db::sqlite::Row row, string const &prefix, string const &additional)
 {
-	bool first = true;
-
-	d_stream << Indentation() << name << ": {";
+	vector<string> names;
 
 	while (row && !row.Done())
 	{
@@ -189,13 +197,7 @@ Exporter::WriteNames(string const &name, jessevdk::db::sqlite::Row row, string c
 
 		if (name.StartsWith(prefix))
 		{
-			if (!first)
-			{
-				d_stream << ", ";
-			}
-
-			first = false;
-			d_stream << Serialize(name.substr(prefix.length()));
+			names.push_back(name.substr(prefix.length()));
 		}
 
 		row.Next();
@@ -203,15 +205,20 @@ Exporter::WriteNames(string const &name, jessevdk::db::sqlite::Row row, string c
 
 	if (additional != "")
 	{
-		if (!first)
-		{
-			d_stream << ", ";
-		}
-
-		d_stream << Serialize(additional);
+		names.push_back(additional);
 	}
 
-	d_stream << "}" << endl;
+	int dims[2] = {1, names.size()};
+	matvar_t **data = new matvar_t *[names.size()];
+
+	for (size_t i = 0; i < names.size(); ++i)
+	{
+		int ddims[2] = {1, names[i].size()};
+		data[i] = Mat_VarCreate ("", MAT_C_CHAR, MAT_T_UTF8, 2, ddims, (void *)names[i].c_str(), 0);
+	}
+
+	Write(Mat_VarCreate (name.c_str(), MAT_C_CELL, MAT_T_CELL, 2, dims, data, 0));
+	delete[] data;
 }
 
 void
@@ -220,138 +227,150 @@ Exporter::ExportSolutions()
 	// Write the parameter names
 	WriteNames("parameter_names", d_database("PRAGMA table_info(parameter_values)"), "_p_");
 
-	Row row = d_database("SELECT * FROM parameter_values ORDER BY iteration, `index`");
+	Row row = d_database("SELECT COUNT(*) FROM parameter_values");
 
-	d_stream << setprecision(12);
-
-	// Parameter values matrix
-	d_stream << Indentation() << "parameter_values: []" << endl;
-
-	Begin();
+	if (row)
 	{
+		size_t rows = row.Get<size_t>(0);
+
+		row = d_database("SELECT * FROM parameter_values ORDER BY iteration, `index`");
+
+		int dims[2] = {rows, row.Length() - 1};
+		double *data = new double[dims[0] * dims[1]];
+		size_t ct = 0;
+
 		while (row && !row.Done())
 		{
-			vector<double> v;
-
 			for (size_t i = 2; i < row.Length(); ++i)
 			{
-				v.push_back(row.Get<double>(i));
+				data[ct++] = row.Get<double>(i);
 			}
 
-			d_stream << Indentation() << Serialize(v) << endl;
 			row.Next();
 		}
+
+		matvar_t *var = Mat_VarCreate ("parameter_values", MAT_C_DOUBLE, MAT_T_DOUBLE, 2, dims, data, 0);
+		delete[] data;
+
+		Write(var);
 	}
-	End();
 
 	// Write the fitness names
 	WriteNames("fitness_names", d_database("PRAGMA table_info(fitness)"), "_f_", "value");
 
-	row = d_database("SELECT * FROM fitness ORDER BY iteration, `index`");
+	row = d_database("SELECT COUNT(*) FROM fitness");
 
-	// Fitness matrix
-	d_stream << Indentation() << "fitness_values: []" << endl;
-
-	Begin();
+	if (row)
 	{
+		size_t rows = row.Get<double>(0);
+
+		row = d_database("SELECT * FROM fitness ORDER BY iteration, `index`");
+
+		int dims[2] = {rows, row.Length() - 2};
+		double *data = new double[dims[0] * dims[1]];
+		size_t ct = 0;
+
 		while (row && !row.Done())
 		{
-			vector<double> v;
-
 			for (size_t i = 3; i < row.Length(); ++i)
 			{
-				v.push_back(row.Get<double>(i));
+				data[ct++] = row.Get<double>(i);
 			}
 
-			v.push_back(row.Get<double>(2));
-
-			d_stream << Indentation() << Serialize(v) << endl;
+			data[ct++] = row.Get<double>(2);
 			row.Next();
 		}
+
+		matvar_t *var = Mat_VarCreate ("fitness_values", MAT_C_DOUBLE, MAT_T_DOUBLE, 2, dims, data, 0);
+		delete[] data;
+
+		Write(var);
 	}
-	End();
 
 	WriteNames("data_names", d_database("PRAGMA table_info(data)"), "_d_");
 
-	// Matrix matrix
-	d_stream << Indentation() << "data_values: {}" << endl;
+	/*row = d_database("SELECT * FROM data ORDER BY iteration, `index`");
 
-	row = d_database("SELECT * FROM data ORDER BY iteration, `index`");
-
-	Begin();
+	while (row && !row.Done())
 	{
-		while (row && !row.Done())
+		d_stream << Indentation() << "{" << row.Get<size_t>(0) << ", " << row.Get<size_t>(1);
+
+		for (size_t i = 2; i < row.Length(); ++i)
 		{
-			d_stream << Indentation() << "{" << row.Get<size_t>(0) << ", " << row.Get<size_t>(1);
-
-			for (size_t i = 2; i < row.Length(); ++i)
-			{
-				d_stream << ", " << Serialize(row.Get<string>(i));
-			}
-
-			d_stream << "}" << endl;
-			row.Next();
+			d_stream << ", " << Serialize(row.Get<string>(i));
 		}
-	}
-	End();
 
-	d_stream << setprecision(5);
+		d_stream << "}" << endl;
+		row.Next();
+	}*/
+}
+
+void
+Exporter::Write(matvar_t *var)
+{
+	if (d_structures.empty())
+	{
+		Mat_VarWrite (d_matlab, var, 0);
+	}
+	else
+	{
+		matvar_t *parent = d_structures.top();
+
+		Mat_VarAddStructField (parent, &var);
+	}
 }
 
 void
 Exporter::Begin(string const &name)
 {
-	if (name != "")
-	{
-		d_stream << Indentation() << name << ":" << endl;
-	}
+	int dims[2] = {1, 1};
+	matvar_t *data[] = {NULL};
 
-	d_indentation += "\n";
-	++d_level;
+	matvar_t *st = Mat_VarCreate (name.c_str(), MAT_C_STRUCT, MAT_T_STRUCT, 2, dims, data, 0);
+
+	d_structures.push(st);
 }
 
 void
 Exporter::End()
 {
-	if (d_level == 0)
-	{
-		return;
-	}
+	matvar_t *last = d_structures.top();
 
-	d_stream << endl;
+	d_structures.pop();
 
-	d_indentation = d_indentation.substr(1);
-	--d_level;
+	Write(last);
 }
 
-string
-Exporter::Serialize(string const &v) const
+matvar_t *
+Exporter::Serialize(string const &name, string const &v) const
 {
-	return "'" + String(v).Replace("'", "''") + "'";
+	int dims[2] = {1, v.size()};
+
+	return Mat_VarCreate (name.c_str(), MAT_C_CHAR, MAT_T_UTF8, 2, dims, (void *)(v.c_str()), 0);
 }
 
-string
-Exporter::Serialize(double v) const
+matvar_t *
+Exporter::Serialize(string const &name, double v) const
 {
-	return SerializeStream(v);
+	int dims[2] = {1, 1};
+
+	return Mat_VarCreate (name.c_str(), MAT_C_DOUBLE, MAT_T_DOUBLE, 2, dims, &v, 0);
 }
 
-string
-Exporter::Serialize(size_t v) const
+matvar_t *
+Exporter::Serialize(string const &name, size_t v) const
 {
-	return SerializeStream(v);
+	int dims[2] = {1, 1};
+
+	return Mat_VarCreate (name.c_str(), MAT_C_UINT32, MAT_T_UINT32, 2, dims, &v, 0);
 }
 
-string
-Exporter::Serialize(int v) const
+matvar_t *
+Exporter::Serialize(string const &name, int v) const
 {
-	return SerializeStream(v);
-}
+	int dims[2] = {1, 1};
 
-string
-Exporter::Indentation() const
-{
-	return string(d_level, '\t');
+	return Mat_VarCreate (name.c_str(), MAT_C_INT32, MAT_T_INT32, 2, dims, &v, 0);
 }
 
 string

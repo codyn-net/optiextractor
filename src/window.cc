@@ -483,8 +483,8 @@ Window::OnDatabaseExport()
 
 	Gtk::FileFilter *txtfilter = new Gtk::FileFilter();
 
-	txtfilter->set_name("Matlab data text files (*.txt)");
-	txtfilter->add_pattern("*.txt");
+	txtfilter->set_name("Matlab data files (*.mat)");
+	txtfilter->add_pattern("*.mat");
 	dialog->add_filter(*txtfilter);
 
 	Gtk::FileFilter *filter = new Gtk::FileFilter();
@@ -504,27 +504,17 @@ Window::OnDatabaseExport()
 	string filename = dialog->get_filename();
 	if (dialog->get_filter() && dialog->get_filter()->get_name() == txtfilter->get_name())
 	{
-		if (!String(filename).EndsWith(".txt"))
+		if (!String(filename).EndsWith(".mat"))
 		{
-			filename += ".txt";
+			filename += ".mat";
 		}
 	}
 
 	delete txtfilter;
 	delete dialog;
 
-	ofstream fstr(filename.c_str(), ios::out);
-
-	if (!fstr)
-	{
-		Error("Could not create file to export to");
-		return;
-	}
-
-	Exporter exporter(fstr, d_database);
+	Exporter exporter(filename, d_database);
 	exporter.Export();
-
-	fstr.close();
 }
 
 void

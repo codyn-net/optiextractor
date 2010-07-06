@@ -73,7 +73,7 @@ Application::RunExporter(int &argc, char **&argv)
 		}
 		else
 		{
-			outfile = filename + ".txt";
+			outfile = filename + ".mat";
 		}
 
 		RunExporter(argv[i], outfile);
@@ -106,18 +106,8 @@ Application::RunExporter(string const &filename, string const &outfile)
 		return;
 	}
 
-	ofstream fstr(outfile.c_str(), ios::out);
-
-	if (!fstr)
-	{
-		cerr << "Could not open output file `" << outfile << "` for writing..." << endl;
-		return;
-	}
-
-	Exporter exporter(fstr, database);
+	Exporter exporter(outfile, database);
 	exporter.Export();
-
-	fstr.close();
 }
 
 void
