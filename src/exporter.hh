@@ -30,6 +30,14 @@ namespace optiextractor
 			void ExportOptimizerSettings();
 			void ExportParameters();
 			void ExportSolutions();
+			void ExportData();
+			void ExportParameterValues();
+			void ExportFitness();
+
+			size_t Normalize3D(size_t idx, int *dims);
+
+			int *MatrixDimensions(std::string const &name, int &numdim, size_t &size);
+			void ExportMatrix(std::string const &name);
 
 			void Begin(std::string const &name = "");
 			void End();
