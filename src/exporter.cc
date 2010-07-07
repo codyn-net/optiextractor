@@ -11,8 +11,15 @@ using namespace jessevdk::base;
 Exporter::Exporter(std::string const &filename, SQLite &database)
 :
 	d_filename(filename),
-	d_database(database)
+	d_database(database),
+	d_isSystematic(false)
 {
+	Row row = d_database("SELECT `optimizer` FROM job");
+
+	if (row)
+	{
+		d_isSystematic = Glib::ustring(row.Get<string>(0)).lowercase() == "systematic";
+	}
 }
 
 void
@@ -184,7 +191,13 @@ Exporter::ExportIterations()
 		data[i] = times[i];
 	}
 
-	Write(Mat_VarCreate ("iteration_times", MAT_C_INT32, MAT_T_INT32, 2, dims, data, 0));
+	Write(Mat_VarCreate ("iteration_times",
+	                     MAT_C_INT32,
+	                     MAT_T_INT32,
+	                     2,
+	                     dims,
+	                     data,
+	                     0));
 }
 
 void
@@ -221,19 +234,45 @@ Exporter::WriteNames(string const &name, jessevdk::db::sqlite::Row row, string c
 	Write(Mat_VarCreate (name.c_str(), MAT_C_CELL, MAT_T_CELL, 2, dims, data, 0));
 }
 
+size_t
+Exporter::NumberOfColumns(string const &name)
+{
+	Row row = d_database("PRAGMA table_info(" + name + ")");
+	size_t cols = 0;
+
+	while (row && !row.Done())
+	{
+		++cols;
+		row.Next();
+	}
+
+	return cols;
+}
+
 int *
 Exporter::MatrixDimensions(string const &name, int &numdim, size_t &size)
 {
-	bool issystematic = false;
-
-	Row row = d_database("SELECT `optimizer` FROM job");
-
-	if (row)
+	if (d_isSystematic)
 	{
-		issystematic = Glib::ustring(row.Get<string>(0)).lowercase() == "systematic";
+		Row row = d_database("SELECT COUNT(*) FROM " + name);
+
+		if (!row)
+		{
+			return 0;
+		}
+
+		int *dims = new int[2];
+
+		dims[0] = row.Get<size_t>(0);
+		dims[1] = NumberOfColumns(name) - 2;
+
+		numdim = 2;
+		size = dims[0] * dims[1];
+
+		return dims;
 	}
 
-	row = d_database("SELECT COUNT(DISTINCT iteration) FROM " + name);
+	Row row = d_database("SELECT COUNT(DISTINCT iteration) FROM " + name);
 
 	if (!row)
 	{
@@ -245,30 +284,18 @@ Exporter::MatrixDimensions(string const &name, int &numdim, size_t &size)
 	row = d_database("SELECT COUNT(DISTINCT `index`) FROM " + name);
 	size_t solutions = row.Get<size_t>(0);
 
-	row = d_database("SELECT * FROM " + name + " ORDER BY iteration, `index`");
+	size_t vals = NumberOfColumns(name);
 
 	int *dims;
 
-	if (!issystematic)
-	{
-		dims = new int[3];
+	dims = new int[3];
 
-		dims[0] = iterations;
-		dims[1] = solutions;
-		dims[2] = row.Length() - 2;
+	dims[0] = iterations;
+	dims[1] = solutions;
+	dims[2] = vals - 2;
 
-		numdim = 3;
-		size = dims[0] * dims[1] * dims[2];
-	}
-	else
-	{
-		dims = new int[2];
-		dims[0] = iterations * solutions;
-		dims[1] = row.Length() - 2;
-
-		numdim = 2;
-		size = dims[0] * dims[1];
-	}
+	numdim = 3;
+	size = dims[0] * dims[1] * dims[2];
 
 	return dims;
 }
@@ -281,6 +308,12 @@ Exporter::Normalize3D(size_t idx, int *dims)
 	return idx / idval +
 	       (idx % idval) / dims[2] * dims[0] +
 	       (idx % dims[2]) * dims[0] * dims[1];
+}
+
+size_t
+Exporter::Normalize2D(size_t idx, int *dims)
+{
+	return (idx / dims[1]) + (idx % dims[1]) * dims[0];
 }
 
 void
@@ -297,17 +330,26 @@ Exporter::ExportMatrix(string const &name)
 		return;
 	}
 
-	Row row = d_database("SELECT * FROM " + name + " ORDER BY iteration, `index`");
+	Row row(0, 0);
+
+	if (!d_isSystematic)
+	{
+		row = d_database("SELECT * FROM " + name + " ORDER BY iteration, `index`");
+	}
+	else
+	{
+		row = d_database("SELECT * FROM " + name + " ORDER BY `index`");
+	}
 
 	double data[size];
 	size_t ct = 0;
+	size_t len = dims[numdim - 1] + 2;
 
 	while (row && !row.Done())
 	{
-		for (size_t i = 2; i < row.Length(); ++i)
+		for (size_t i = 2; i < len; ++i)
 		{
-			size_t idx = numdim == 3 ? Normalize3D(ct, dims) : ct;
-
+			size_t idx = numdim == 3 ? Normalize3D(ct, dims) : Normalize2D(ct, dims);
 			data[idx] = row.Get<double>(i);
 
 			++ct;
@@ -367,7 +409,16 @@ Exporter::ExportData()
 	matvar_t *data[size];
 	size_t ct = 0;
 
-	Row row = d_database("SELECT * FROM data ORDER BY iteration, `index`");
+	Row row(0, 0);
+
+	if (!d_isSystematic)
+	{
+		row = d_database("SELECT * FROM data ORDER BY iteration, `index`");
+	}
+	else
+	{
+		row = d_database("SELECT * FROM data ORDER BY `index`");
+	}
 
 	while (row && !row.Done())
 	{
@@ -376,7 +427,7 @@ Exporter::ExportData()
 			string s = row.Get<string>(i);
 			int ddims[2] = {1, s.size()};
 
-			size_t idx = numdim == 3 ? Normalize3D(ct, dims) : ct;
+			size_t idx = numdim == 3 ? Normalize3D(ct, dims) : Normalize2D(ct, dims);
 
 			data[idx] = Mat_VarCreate ("",
 			                           MAT_C_CHAR,
@@ -417,6 +468,7 @@ Exporter::Write(matvar_t *var)
 	if (d_structures.empty())
 	{
 		Mat_VarWrite (d_matlab, var, 0);
+		Mat_VarFree (var);
 	}
 	else
 	{
@@ -432,7 +484,13 @@ Exporter::Begin(string const &name)
 	int dims[2] = {1, 1};
 	matvar_t *data[] = {NULL};
 
-	matvar_t *st = Mat_VarCreate (name.c_str(), MAT_C_STRUCT, MAT_T_STRUCT, 2, dims, data, 0);
+	matvar_t *st = Mat_VarCreate (name.c_str(),
+	                              MAT_C_STRUCT,
+	                              MAT_T_STRUCT,
+	                              2,
+	                              dims,
+	                              data,
+	                              0);
 
 	d_structures.push(st);
 }

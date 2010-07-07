@@ -16,6 +16,7 @@ namespace optiextractor
 		jessevdk::db::sqlite::SQLite &d_database;
 		std::stack<matvar_t *> d_structures;
 		mat_t *d_matlab;
+		bool d_isSystematic;
 
 		public:
 			Exporter(std::string const &filename, jessevdk::db::sqlite::SQLite &database);
@@ -35,9 +36,13 @@ namespace optiextractor
 			void ExportFitness();
 
 			size_t Normalize3D(size_t idx, int *dims);
+			size_t Normalize2D(size_t idx, int *dims);
 
-			int *MatrixDimensions(std::string const &name, int &numdim, size_t &size);
+			int *MatrixDimensions(std::string const &name,
+			                      int &numdim,
+			                      size_t &size);
 			void ExportMatrix(std::string const &name);
+			size_t NumberOfColumns(std::string const &name);
 
 			void Begin(std::string const &name = "");
 			void End();
