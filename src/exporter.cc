@@ -23,11 +23,39 @@ Exporter::Exporter(std::string const &filename, SQLite &database)
 }
 
 void
+Exporter::CalculateTotalProgress()
+{
+	d_total = 0;
+
+	Row row = d_database("SELECT COUNT(*) FROM parameter_values");
+	d_total += row.Get<size_t>(0);
+
+	row = d_database("SELECT COUNT(*) FROM fitness");
+	d_total += row.Get<size_t>(0);
+
+	row = d_database("SELECT COUNT(*) FROM data");
+	d_total += row.Get<size_t>(0);
+
+	d_ticker = 0;
+}
+
+void
+Exporter::EmitProgress()
+{
+	double val = d_total == 0 ? 0 : (double)d_ticker / (double)d_total;
+
+	OnProgress(val);
+}
+
+void
 Exporter::Export()
 {
 	d_matlab = Mat_Create (d_filename.c_str(), NULL);
 
 	Row row = d_database("SELECT MAX(iteration) FROM solution");
+
+	CalculateTotalProgress();
+	EmitProgress();
 
 	if (row && !row.Done())
 	{
@@ -355,6 +383,9 @@ Exporter::ExportMatrix(string const &name)
 			++ct;
 		}
 
+		++d_ticker;
+		EmitProgress();
+
 		row.Next();
 	}
 
@@ -439,6 +470,9 @@ Exporter::ExportData()
 
 			++ct;
 		}
+
+		++d_ticker;
+		EmitProgress();
 
 		row.Next();
 	}

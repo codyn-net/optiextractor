@@ -17,11 +17,15 @@ namespace optiextractor
 		std::stack<matvar_t *> d_structures;
 		mat_t *d_matlab;
 		bool d_isSystematic;
+		size_t d_total;
+		size_t d_ticker;
 
 		public:
 			Exporter(std::string const &filename, jessevdk::db::sqlite::SQLite &database);
 
 			void Export();
+
+			jessevdk::base::signals::Signal<double> OnProgress;
 		private:
 			/* Private functions */
 			void ExportBoundaries();
@@ -34,6 +38,9 @@ namespace optiextractor
 			void ExportData();
 			void ExportParameterValues();
 			void ExportFitness();
+
+			void CalculateTotalProgress();
+			void EmitProgress();
 
 			size_t Normalize3D(size_t idx, int *dims);
 			size_t Normalize2D(size_t idx, int *dims);

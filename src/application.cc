@@ -4,6 +4,7 @@
 
 #include <jessevdk/os/os.hh>
 #include <jessevdk/db/db.hh>
+#include <iomanip>
 
 using namespace optiextractor;
 using namespace std;
@@ -81,6 +82,12 @@ Application::RunExporter(int &argc, char **&argv)
 }
 
 void
+Application::ExporterProgress(double progress)
+{
+	cout << setw(4) << static_cast<size_t>(progress * 100) << " %\r";
+}
+
+void
 Application::RunExporter(string const &filename, string const &outfile)
 {
 	if (!FileSystem::FileExists(filename))
@@ -107,7 +114,11 @@ Application::RunExporter(string const &filename, string const &outfile)
 	}
 
 	Exporter exporter(outfile, database);
+
+	exporter.OnProgress.Add(*this, &Application::ExporterProgress);
 	exporter.Export();
+
+	cout << endl;
 }
 
 void
