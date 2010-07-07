@@ -536,6 +536,19 @@ Window::OnFileOpen()
 	                                          "Open Optimization Database",
 	                                          Gtk::FILE_CHOOSER_ACTION_OPEN);
 
+	Gtk::FileFilter *dbfilter = new Gtk::FileFilter();
+
+	dbfilter->set_name("Optimization database (*.db)");
+	dbfilter->add_pattern("*.db");
+	d_openDialog->add_filter(*dbfilter);
+	delete dbfilter;
+
+	Gtk::FileFilter *filter = new Gtk::FileFilter();
+	filter->set_name("All files (*)");
+	filter->add_pattern("*");
+	d_openDialog->add_filter(*filter);
+	delete filter;
+
 	d_openDialog->add_button(Gtk::Stock::CANCEL, Gtk::RESPONSE_CANCEL);
 	d_openDialog->add_button(Gtk::Stock::OPEN, Gtk::RESPONSE_OK);
 
