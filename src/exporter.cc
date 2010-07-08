@@ -486,7 +486,7 @@ Exporter::ExportData()
 	Write(Mat_VarCreate ("data_values",
 	                     MAT_C_CELL,
 	                     MAT_T_CELL,
-	                     2,
+	                     numdim,
 	                     dims,
 	                     data,
 	                     0));
