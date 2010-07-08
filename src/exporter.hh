@@ -48,7 +48,10 @@ namespace optiextractor
 			int *MatrixDimensions(std::string const &name,
 			                      int &numdim,
 			                      size_t &size);
+
 			void ExportMatrix(std::string const &name);
+			void ExportMatrix(std::string const &table, std::string const &name);
+
 			size_t NumberOfColumns(std::string const &name);
 
 			void Begin(std::string const &name = "");

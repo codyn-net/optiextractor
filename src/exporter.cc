@@ -345,7 +345,7 @@ Exporter::Normalize2D(size_t idx, int *dims)
 }
 
 void
-Exporter::ExportMatrix(string const &name)
+Exporter::ExportMatrix(string const &table, string const &name)
 {
 	int numdim;
 	size_t size;
@@ -362,11 +362,11 @@ Exporter::ExportMatrix(string const &name)
 
 	if (!d_isSystematic)
 	{
-		row = d_database("SELECT * FROM " + name + " ORDER BY iteration, `index`");
+		row = d_database("SELECT * FROM " + table + " ORDER BY iteration, `index`");
 	}
 	else
 	{
-		row = d_database("SELECT * FROM " + name + " ORDER BY `index`");
+		row = d_database("SELECT * FROM " + table + " ORDER BY `index`");
 	}
 
 	double data[size];
@@ -403,6 +403,12 @@ Exporter::ExportMatrix(string const &name)
 }
 
 void
+Exporter::ExportMatrix(string const &name)
+{
+	ExportMatrix(name, name);
+}
+
+void
 Exporter::ExportParameterValues()
 {
 	WriteNames("parameter_names",
@@ -418,7 +424,7 @@ Exporter::ExportFitness()
 	// Write the fitness names
 	WriteNames("fitness_names", d_database("PRAGMA table_info(fitness)"), "_f_", "value");
 
-	ExportMatrix("fitness");
+	ExportMatrix("fitness", "fitness_values");
 }
 
 void
