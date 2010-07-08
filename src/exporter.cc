@@ -351,7 +351,7 @@ Exporter::ExportMatrix(string const &table, string const &name)
 	size_t size;
 	int *dims;
 
-	dims = MatrixDimensions(name, numdim, size);
+	dims = MatrixDimensions(table, numdim, size);
 
 	if (!dims)
 	{
