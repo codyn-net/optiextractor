@@ -463,11 +463,11 @@ Exporter::ExportData()
 		{
 			string s;
 
-			//try
+			try
 			{
 				s = row.Get<string>(i);
 			}
-			//catch (...)
+			catch (...)
 			{
 			}
 
