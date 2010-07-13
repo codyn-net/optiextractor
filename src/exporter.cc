@@ -233,6 +233,11 @@ Exporter::WriteNames(string const &name, jessevdk::db::sqlite::Row row, string c
 {
 	vector<string> names;
 
+	if (additional != "")
+	{
+		names.push_back(additional);
+	}
+
 	while (row && !row.Done())
 	{
 		String name = row.Get<string>(1);
@@ -243,11 +248,6 @@ Exporter::WriteNames(string const &name, jessevdk::db::sqlite::Row row, string c
 		}
 
 		row.Next();
-	}
-
-	if (additional != "")
-	{
-		names.push_back(additional);
 	}
 
 	int dims[2] = {1, names.size()};
@@ -463,11 +463,11 @@ Exporter::ExportData()
 		{
 			string s;
 
-			try
+			//try
 			{
 				s = row.Get<string>(i);
 			}
-			catch (...)
+			//catch (...)
 			{
 			}
 
