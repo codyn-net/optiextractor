@@ -461,7 +461,16 @@ Exporter::ExportData()
 	{
 		for (size_t i = 2; i < row.Length(); ++i)
 		{
-			string s = row.Get<string>(i);
+			string s;
+
+			try
+			{
+				s = row.Get<string>(i);
+			}
+			catch (...)
+			{
+			}
+
 			int ddims[2] = {1, s.size()};
 
 			size_t idx = numdim == 3 ? Normalize3D(ct, dims) : Normalize2D(ct, dims);
