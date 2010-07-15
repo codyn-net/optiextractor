@@ -4,6 +4,7 @@
 
 #include <jessevdk/os/os.hh>
 #include <jessevdk/db/db.hh>
+#include <iomanip>
 
 using namespace optiextractor;
 using namespace std;
@@ -73,11 +74,17 @@ Application::RunExporter(int &argc, char **&argv)
 		}
 		else
 		{
-			outfile = filename + ".txt";
+			outfile = filename + ".mat";
 		}
 
 		RunExporter(argv[i], outfile);
 	}
+}
+
+void
+Application::ExporterProgress(double progress)
+{
+	cout << setw(4) << static_cast<size_t>(progress * 100) << " %\r";
 }
 
 void
@@ -106,18 +113,12 @@ Application::RunExporter(string const &filename, string const &outfile)
 		return;
 	}
 
-	ofstream fstr(outfile.c_str(), ios::out);
+	Exporter exporter(outfile, database);
 
-	if (!fstr)
-	{
-		cerr << "Could not open output file `" << outfile << "` for writing..." << endl;
-		return;
-	}
-
-	Exporter exporter(fstr, database);
+	exporter.OnProgress.Add(*this, &Application::ExporterProgress);
 	exporter.Export();
 
-	fstr.close();
+	cout << endl;
 }
 
 void

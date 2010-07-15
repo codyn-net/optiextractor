@@ -1,4 +1,4 @@
-AC_INIT(optiextractor, 2.4)
+AC_INIT(optiextractor, 2.5)
 
 AM_INIT_AUTOMAKE([subdir-objects])
 
@@ -20,7 +20,8 @@ m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 
 PKG_CHECK_MODULES(PACKAGE_OPTIEXTRACTOR, [
 	gtkmm-2.4 >= 2.12
-	liboptimization-2.0
+	liboptimization-2.0 >= 2.2
+	matio
 ])
 
 if test "x$USE_MAINTAINER_MODE" = "xyes"; then

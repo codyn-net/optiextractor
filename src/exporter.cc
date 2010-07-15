@@ -1,25 +1,61 @@
 #include "exporter.hh"
 #include <jessevdk/base/string.hh>
 #include <iomanip>
+#include <glibmm.h>
 
 using namespace optiextractor;
 using namespace std;
 using namespace jessevdk::db::sqlite;
 using namespace jessevdk::base;
 
-Exporter::Exporter(ostream &ostr, SQLite &database)
+Exporter::Exporter(std::string const &filename, SQLite &database)
 :
-	d_stream(ostr),
+	d_filename(filename),
 	d_database(database),
-	d_level(0)
+	d_isSystematic(false)
 {
-	d_stream << setprecision(5);
+	Row row = d_database("SELECT `optimizer` FROM job");
+
+	if (row)
+	{
+		d_isSystematic = Glib::ustring(row.Get<string>(0)).lowercase() == "systematic";
+	}
+}
+
+void
+Exporter::CalculateTotalProgress()
+{
+	d_total = 0;
+
+	Row row = d_database("SELECT COUNT(*) FROM parameter_values");
+	d_total += row.Get<size_t>(0);
+
+	row = d_database("SELECT COUNT(*) FROM fitness");
+	d_total += row.Get<size_t>(0);
+
+	row = d_database("SELECT COUNT(*) FROM data");
+	d_total += row.Get<size_t>(0);
+
+	d_ticker = 0;
+}
+
+void
+Exporter::EmitProgress()
+{
+	double val = d_total == 0 ? 0 : (double)d_ticker / (double)d_total;
+
+	OnProgress(val);
 }
 
 void
 Exporter::Export()
 {
+	d_matlab = Mat_Create (d_filename.c_str(), NULL);
+
 	Row row = d_database("SELECT MAX(iteration) FROM solution");
+
+	CalculateTotalProgress();
+	EmitProgress();
 
 	if (row && !row.Done())
 	{
@@ -41,6 +77,8 @@ Exporter::Export()
 	ExportJob();
 	ExportIterations();
 	ExportSolutions();
+
+	Mat_Close (d_matlab);
 }
 
 void
@@ -173,15 +211,32 @@ Exporter::ExportIterations()
 		row.Next();
 	}
 
-	Write("iteration_times", times);
+	int dims[2] = {1, times.size()};
+	int data[times.size()];
+
+	for (size_t i = 0; i < times.size(); ++i)
+	{
+		data[i] = times[i];
+	}
+
+	Write(Mat_VarCreate ("iteration_times",
+	                     MAT_C_INT32,
+	                     MAT_T_INT32,
+	                     2,
+	                     dims,
+	                     data,
+	                     0));
 }
 
 void
 Exporter::WriteNames(string const &name, jessevdk::db::sqlite::Row row, string const &prefix, string const &additional)
 {
-	bool first = true;
+	vector<string> names;
 
-	d_stream << Indentation() << name << ": {";
+	if (additional != "")
+	{
+		names.push_back(additional);
+	}
 
 	while (row && !row.Done())
 	{
@@ -189,169 +244,346 @@ Exporter::WriteNames(string const &name, jessevdk::db::sqlite::Row row, string c
 
 		if (name.StartsWith(prefix))
 		{
-			if (!first)
-			{
-				d_stream << ", ";
-			}
-
-			first = false;
-			d_stream << Serialize(name.substr(prefix.length()));
+			names.push_back(name.substr(prefix.length()));
 		}
 
 		row.Next();
 	}
 
-	if (additional != "")
-	{
-		if (!first)
-		{
-			d_stream << ", ";
-		}
+	int dims[2] = {1, names.size()};
+	matvar_t *data[names.size()];
 
-		d_stream << Serialize(additional);
+	for (size_t i = 0; i < names.size(); ++i)
+	{
+		int ddims[2] = {1, names[i].size()};
+		data[i] = Mat_VarCreate ("", MAT_C_CHAR, MAT_T_UTF8, 2, ddims, (void *)names[i].c_str(), 0);
 	}
 
-	d_stream << "}" << endl;
+	Write(Mat_VarCreate (name.c_str(), MAT_C_CELL, MAT_T_CELL, 2, dims, data, 0));
+}
+
+size_t
+Exporter::NumberOfColumns(string const &name)
+{
+	Row row = d_database("PRAGMA table_info(" + name + ")");
+	size_t cols = 0;
+
+	while (row && !row.Done())
+	{
+		++cols;
+		row.Next();
+	}
+
+	return cols;
+}
+
+int *
+Exporter::MatrixDimensions(string const &name, int &numdim, size_t &size)
+{
+	if (d_isSystematic)
+	{
+		Row row = d_database("SELECT COUNT(*) FROM " + name);
+
+		if (!row)
+		{
+			return 0;
+		}
+
+		int *dims = new int[2];
+
+		dims[0] = row.Get<size_t>(0);
+		dims[1] = NumberOfColumns(name) - 2;
+
+		numdim = 2;
+		size = dims[0] * dims[1];
+
+		return dims;
+	}
+
+	Row row = d_database("SELECT COUNT(DISTINCT iteration) FROM " + name);
+
+	if (!row)
+	{
+		return 0;
+	}
+
+	size_t iterations = row.Get<size_t>(0);
+
+	row = d_database("SELECT COUNT(DISTINCT `index`) FROM " + name);
+	size_t solutions = row.Get<size_t>(0);
+
+	size_t vals = NumberOfColumns(name);
+
+	int *dims;
+
+	dims = new int[3];
+
+	dims[0] = iterations;
+	dims[1] = solutions;
+	dims[2] = vals - 2;
+
+	numdim = 3;
+	size = dims[0] * dims[1] * dims[2];
+
+	return dims;
+}
+
+size_t
+Exporter::Normalize3D(size_t idx, int *dims)
+{
+	size_t idval = dims[1] * dims[2];
+
+	return idx / idval +
+	       (idx % idval) / dims[2] * dims[0] +
+	       (idx % dims[2]) * dims[0] * dims[1];
+}
+
+size_t
+Exporter::Normalize2D(size_t idx, int *dims)
+{
+	return (idx / dims[1]) + (idx % dims[1]) * dims[0];
+}
+
+void
+Exporter::ExportMatrix(string const &table, string const &name)
+{
+	int numdim;
+	size_t size;
+	int *dims;
+
+	dims = MatrixDimensions(table, numdim, size);
+
+	if (!dims)
+	{
+		return;
+	}
+
+	Row row(0, 0);
+
+	if (!d_isSystematic)
+	{
+		row = d_database("SELECT * FROM " + table + " ORDER BY iteration, `index`");
+	}
+	else
+	{
+		row = d_database("SELECT * FROM " + table + " ORDER BY `index`");
+	}
+
+	double data[size];
+	size_t ct = 0;
+	size_t len = dims[numdim - 1] + 2;
+
+	while (row && !row.Done())
+	{
+		for (size_t i = 2; i < len; ++i)
+		{
+			size_t idx = numdim == 3 ? Normalize3D(ct, dims) : Normalize2D(ct, dims);
+			data[idx] = row.Get<double>(i);
+
+			++ct;
+		}
+
+		++d_ticker;
+		EmitProgress();
+
+		row.Next();
+	}
+
+	matvar_t *var = Mat_VarCreate (name.c_str(),
+	                               MAT_C_DOUBLE,
+	                               MAT_T_DOUBLE,
+	                               numdim,
+	                               dims,
+	                               data,
+	                               0);
+
+	Write(var);
+
+	delete[] dims;
+}
+
+void
+Exporter::ExportMatrix(string const &name)
+{
+	ExportMatrix(name, name);
+}
+
+void
+Exporter::ExportParameterValues()
+{
+	WriteNames("parameter_names",
+	           d_database("PRAGMA table_info(parameter_values)"),
+	           "_p_");
+
+	ExportMatrix("parameter_values");
+}
+
+void
+Exporter::ExportFitness()
+{
+	// Write the fitness names
+	WriteNames("fitness_names", d_database("PRAGMA table_info(fitness)"), "_f_", "value");
+
+	ExportMatrix("fitness", "fitness_values");
+}
+
+void
+Exporter::ExportData()
+{
+	WriteNames("data_names", d_database("PRAGMA table_info(data)"), "_d_");
+
+	int numdim;
+	size_t size;
+	int *dims;
+
+	dims = MatrixDimensions("data", numdim, size);
+
+	if (!dims)
+	{
+		return;
+	}
+
+	matvar_t *data[size];
+	size_t ct = 0;
+
+	Row row(0, 0);
+
+	if (!d_isSystematic)
+	{
+		row = d_database("SELECT * FROM data ORDER BY iteration, `index`");
+	}
+	else
+	{
+		row = d_database("SELECT * FROM data ORDER BY `index`");
+	}
+
+	while (row && !row.Done())
+	{
+		for (size_t i = 2; i < row.Length(); ++i)
+		{
+			string s;
+
+			try
+			{
+				s = row.Get<string>(i);
+			}
+			catch (...)
+			{
+			}
+
+			int ddims[2] = {1, s.size()};
+
+			size_t idx = numdim == 3 ? Normalize3D(ct, dims) : Normalize2D(ct, dims);
+
+			data[idx] = Mat_VarCreate ("",
+			                           MAT_C_CHAR,
+			                           MAT_T_UTF8,
+			                           2,
+			                           ddims,
+			                           (void *)s.c_str(),
+			                           0);
+
+			++ct;
+		}
+
+		++d_ticker;
+		EmitProgress();
+
+		row.Next();
+	}
+
+	Write(Mat_VarCreate ("data_values",
+	                     MAT_C_CELL,
+	                     MAT_T_CELL,
+	                     numdim,
+	                     dims,
+	                     data,
+	                     0));
+
+	delete[] dims;
 }
 
 void
 Exporter::ExportSolutions()
 {
-	// Write the parameter names
-	WriteNames("parameter_names", d_database("PRAGMA table_info(parameter_values)"), "_p_");
+	ExportParameterValues();
+	ExportFitness();
+	ExportData();
+}
 
-	Row row = d_database("SELECT * FROM parameter_values ORDER BY iteration, `index`");
-
-	d_stream << setprecision(12);
-
-	// Parameter values matrix
-	d_stream << Indentation() << "parameter_values: []" << endl;
-
-	Begin();
+void
+Exporter::Write(matvar_t *var)
+{
+	if (d_structures.empty())
 	{
-		while (row && !row.Done())
-		{
-			vector<double> v;
-
-			for (size_t i = 2; i < row.Length(); ++i)
-			{
-				v.push_back(row.Get<double>(i));
-			}
-
-			d_stream << Indentation() << Serialize(v) << endl;
-			row.Next();
-		}
+		Mat_VarWrite (d_matlab, var, 0);
+		Mat_VarFree (var);
 	}
-	End();
-
-	// Write the fitness names
-	WriteNames("fitness_names", d_database("PRAGMA table_info(fitness)"), "_f_", "value");
-
-	row = d_database("SELECT * FROM fitness ORDER BY iteration, `index`");
-
-	// Fitness matrix
-	d_stream << Indentation() << "fitness_values: []" << endl;
-
-	Begin();
+	else
 	{
-		while (row && !row.Done())
-		{
-			vector<double> v;
+		matvar_t *parent = d_structures.top();
 
-			for (size_t i = 3; i < row.Length(); ++i)
-			{
-				v.push_back(row.Get<double>(i));
-			}
-
-			v.push_back(row.Get<double>(2));
-
-			d_stream << Indentation() << Serialize(v) << endl;
-			row.Next();
-		}
+		Mat_VarAddStructField (parent, &var);
 	}
-	End();
-
-	WriteNames("data_names", d_database("PRAGMA table_info(data)"), "_d_");
-
-	// Matrix matrix
-	d_stream << Indentation() << "data_values: {}" << endl;
-
-	row = d_database("SELECT * FROM data ORDER BY iteration, `index`");
-
-	Begin();
-	{
-		while (row && !row.Done())
-		{
-			d_stream << Indentation() << "{" << row.Get<size_t>(0) << ", " << row.Get<size_t>(1);
-
-			for (size_t i = 2; i < row.Length(); ++i)
-			{
-				d_stream << ", " << Serialize(row.Get<string>(i));
-			}
-
-			d_stream << "}" << endl;
-			row.Next();
-		}
-	}
-	End();
-
-	d_stream << setprecision(5);
 }
 
 void
 Exporter::Begin(string const &name)
 {
-	if (name != "")
-	{
-		d_stream << Indentation() << name << ":" << endl;
-	}
+	int dims[2] = {1, 1};
+	matvar_t *data[] = {NULL};
 
-	d_indentation += "\n";
-	++d_level;
+	matvar_t *st = Mat_VarCreate (name.c_str(),
+	                              MAT_C_STRUCT,
+	                              MAT_T_STRUCT,
+	                              2,
+	                              dims,
+	                              data,
+	                              0);
+
+	d_structures.push(st);
 }
 
 void
 Exporter::End()
 {
-	if (d_level == 0)
-	{
-		return;
-	}
+	matvar_t *last = d_structures.top();
 
-	d_stream << endl;
+	d_structures.pop();
 
-	d_indentation = d_indentation.substr(1);
-	--d_level;
+	Write(last);
 }
 
-string
-Exporter::Serialize(string const &v) const
+matvar_t *
+Exporter::Serialize(string const &name, string const &v) const
 {
-	return "'" + String(v).Replace("'", "''") + "'";
+	int dims[2] = {1, v.size()};
+
+	return Mat_VarCreate (name.c_str(), MAT_C_CHAR, MAT_T_UTF8, 2, dims, (void *)(v.c_str()), 0);
 }
 
-string
-Exporter::Serialize(double v) const
+matvar_t *
+Exporter::Serialize(string const &name, double v) const
 {
-	return SerializeStream(v);
+	int dims[2] = {1, 1};
+
+	return Mat_VarCreate (name.c_str(), MAT_C_DOUBLE, MAT_T_DOUBLE, 2, dims, &v, 0);
 }
 
-string
-Exporter::Serialize(size_t v) const
+matvar_t *
+Exporter::Serialize(string const &name, size_t v) const
 {
-	return SerializeStream(v);
+	int dims[2] = {1, 1};
+
+	return Mat_VarCreate (name.c_str(), MAT_C_UINT32, MAT_T_UINT32, 2, dims, &v, 0);
 }
 
-string
-Exporter::Serialize(int v) const
+matvar_t *
+Exporter::Serialize(string const &name, int v) const
 {
-	return SerializeStream(v);
-}
+	int dims[2] = {1, 1};
 
-string
-Exporter::Indentation() const
-{
-	return string(d_level, '\t');
+	return Mat_VarCreate (name.c_str(), MAT_C_INT32, MAT_T_INT32, 2, dims, &v, 0);
 }
 
 string

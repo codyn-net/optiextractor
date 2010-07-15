@@ -41,6 +41,8 @@ namespace optiextractor
 
 			void RunnerState(bool running);
 			void RunnerResponse(optimization::messages::task::Response response);
+
+			void ExporterProgress(double progress);
 	};
 }
 
