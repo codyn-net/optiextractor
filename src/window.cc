@@ -167,11 +167,10 @@ Window::Fill()
 	FillKeyValue("list_store_settings", "settings", "name", "value");
 	FillKeyValue("list_store_fitness", "fitness_settings", "name", "value");
 	FillKeyValue("list_store_dispatcher", "dispatcher", "name", "value");
-
 	FillKeyValue("list_store_parameters", "parameters", "name", "boundary");
 
 	Gtk::TreeModel::iterator iter;
-	Glib::RefPtr<Gtk::ListStore> store = Get<Gtk::ListStore>("list_store_parameters");\
+	Glib::RefPtr<Gtk::ListStore> store = Get<Gtk::ListStore>("list_store_parameters");
 
 	for (iter = store->children().begin(); iter != store->children().end(); ++iter)
 	{
