@@ -942,18 +942,26 @@ Window::SolutionChanged()
 
 			if (String(name).StartsWith("_f_") || name == "value")
 			{
-				Gtk::TreeRow r = *(store_fitness->append());
-
-				if (name != "value")
+				try
 				{
-					r.set_value(0, name.substr(3));
-				}
-				else
-				{
-					r.set_value(0, string("Fitness"));
-				}
+					string val = row.Get<string>(name);
 
-				r.set_value(1, row.Get<string>(name));
+					Gtk::TreeRow r = *(store_fitness->append());
+					
+					if (name != "value")
+					{
+						r.set_value(0, name.substr(3));
+					}
+					else
+					{
+						r.set_value(0, string("Fitness"));
+					}
+
+					r.set_value(1, val);
+				}
+				catch (...)
+				{
+				}
 			}
 
 			names.Next();
