@@ -28,6 +28,9 @@ namespace optiextractor
 		std::string d_overrideDispatcher;
 
 		bool d_scanned;
+		bool d_logFilled;
+		bool d_solutionFilled;
+
 		size_t d_solutionId;
 		size_t d_iterationId;
 
@@ -89,6 +92,9 @@ namespace optiextractor
 
 			void OnDatabaseExport();
 			void OpenResponse(int response);
+
+			void LogMapped();
+			void SolutionMapped();
 	};
 
 	template <typename T>
