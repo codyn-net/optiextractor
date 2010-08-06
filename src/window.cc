@@ -580,7 +580,7 @@ Window::Open(sqlite::SQLite database)
 	// Do a quick test query
 	sqlite::Row row = d_database("PRAGMA table_info(settings)");
 
-	if (!d_database("PRAGMA quick_check") || (!row || row.Done()))
+	if (!row || row.Done())
 	{
 		Error("<b>Database could not be opened</b>", ". Please make sure the file is a valid optimization results database.");
 		return;
