@@ -13,7 +13,9 @@ using namespace optiextractor;
 Window::Window()
 :
 	d_dialog(0),
-	d_openDialog(0)
+	d_openDialog(0),
+	d_logFilled(false),
+	d_solutionFilled(false)
 {
 	d_runner.OnState.Add(*this, &Window::RunnerState);
 	d_runner.OnResponse.Add(*this, &Window::RunnerResponse);
@@ -48,6 +50,8 @@ Window::Clear()
 	Get<Gtk::Label>("label_solution_iteration")->set_text("");
 	Get<Gtk::Label>("label_solution_solution")->set_text("");
 
+	Get<Gtk::Notebook>("notebook")->set_current_page(0);
+
 	d_runner.Cancel();
 
 	d_lastResponse = Response();
@@ -56,6 +60,9 @@ Window::Clear()
 	d_parameterMap.clear();
 
 	d_overrideDispatcher = "";
+
+	d_logFilled = false;
+	d_solutionFilled = false;
 }
 
 void
@@ -160,11 +167,10 @@ Window::Fill()
 	FillKeyValue("list_store_settings", "settings", "name", "value");
 	FillKeyValue("list_store_fitness", "fitness_settings", "name", "value");
 	FillKeyValue("list_store_dispatcher", "dispatcher", "name", "value");
-
 	FillKeyValue("list_store_parameters", "parameters", "name", "boundary");
 
 	Gtk::TreeModel::iterator iter;
-	Glib::RefPtr<Gtk::ListStore> store = Get<Gtk::ListStore>("list_store_parameters");\
+	Glib::RefPtr<Gtk::ListStore> store = Get<Gtk::ListStore>("list_store_parameters");
 
 	for (iter = store->children().begin(); iter != store->children().end(); ++iter)
 	{
@@ -179,16 +185,12 @@ Window::Fill()
 	}
 
 	FillBoundaries();
-	FillLog();
-	FillOverrides();
 
 	size_t maxiteration = d_database("SELECT MAX(`iteration`) FROM `solution`").Get<size_t>(0);
 	size_t maxindex = d_database("SELECT MAX(`index`) FROM `solution`").Get<size_t>(0);
 
 	Get<Gtk::Range>("hscale_iteration")->set_range(0, maxiteration + 1);
 	Get<Gtk::Range>("hscale_solution")->set_range(0, maxindex + 1);
-
-	SolutionChanged();
 }
 
 void
@@ -241,6 +243,7 @@ Window::FillKeyValue(string const &storeName, string const &table, string const 
 void
 Window::FillLog()
 {
+
 	Glib::RefPtr<Gtk::ListStore> store = Get<Gtk::ListStore>("list_store_log");
 
 	store->clear();
@@ -251,6 +254,12 @@ Window::FillLog()
 		return;
 	}
 
+	d_window->get_window()->set_cursor(Gdk::Cursor(Gdk::WATCH));
+
+	Glib::Timer timer;
+
+	timer.start();
+
 	while (row)
 	{
 		Gtk::TreeRow r = *(store->append());
@@ -260,7 +269,19 @@ Window::FillLog()
 		r->set_value(2, row.Get<string>(2));
 
 		row.Next();
+
+		if (timer.elapsed() > 0.05)
+		{
+			while (Gtk::Main::events_pending())
+			{
+				Gtk::Main::iteration();
+			}
+
+			timer.start();
+		}
 	}
+
+	d_window->get_window()->set_cursor();
 }
 
 void Window::FillOverrides()
@@ -464,7 +485,36 @@ Window::InitializeUI()
 
 	Get<Gtk::CellRendererText>("cell_renderer_text_override_value")->signal_edited().connect(sigc::mem_fun(*this, &Window::OverrideValueEdited));
 
+	Get<Gtk::Widget>("vbox_log")->signal_map().connect(sigc::mem_fun(*this, &Window::LogMapped));
+	Get<Gtk::Widget>("vbox_solution")->signal_map().connect(sigc::mem_fun(*this, &Window::SolutionMapped));
+
 	Clear();
+}
+
+void
+Window::LogMapped()
+{
+	if (d_logFilled)
+	{
+		return;
+	}
+
+	d_logFilled = true;
+	FillLog();
+}
+
+void
+Window::SolutionMapped()
+{
+	if (d_solutionFilled)
+	{
+		return;
+	}
+
+	d_solutionFilled = true;
+
+	FillOverrides();
+	SolutionChanged();
 }
 
 void
@@ -580,7 +630,7 @@ Window::Open(sqlite::SQLite database)
 	// Do a quick test query
 	sqlite::Row row = d_database("PRAGMA table_info(settings)");
 
-	if (!d_database("PRAGMA quick_check") || (!row || row.Done()))
+	if (!row || row.Done())
 	{
 		Error("<b>Database could not be opened</b>", ". Please make sure the file is a valid optimization results database.");
 		return;
@@ -891,18 +941,26 @@ Window::SolutionChanged()
 
 			if (String(name).StartsWith("_f_") || name == "value")
 			{
-				Gtk::TreeRow r = *(store_fitness->append());
-
-				if (name != "value")
+				try
 				{
-					r.set_value(0, name.substr(3));
-				}
-				else
-				{
-					r.set_value(0, string("Fitness"));
-				}
+					string val = row.Get<string>(name);
 
-				r.set_value(1, row.Get<string>(name));
+					Gtk::TreeRow r = *(store_fitness->append());
+					
+					if (name != "value")
+					{
+						r.set_value(0, name.substr(3));
+					}
+					else
+					{
+						r.set_value(0, string("Fitness"));
+					}
+
+					r.set_value(1, val);
+				}
+				catch (...)
+				{
+				}
 			}
 
 			names.Next();

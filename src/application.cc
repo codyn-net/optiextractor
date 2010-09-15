@@ -107,7 +107,7 @@ Application::RunExporter(string const &filename, string const &outfile)
 	// Do a quick test query
 	sqlite::Row row = database("PRAGMA table_info(settings)");
 
-	if (!database("PRAGMA quick_check") || (!row || row.Done()))
+	if (!row || row.Done())
 	{
 		cerr << "Database could not be opened. The file '" << filename << "' could not be opened. Please make sure the file is a valid optimization results database." << endl;
 		return;
@@ -296,7 +296,7 @@ Application::RunOverride(string const &filename)
 	// Do a quick test query
 	sqlite::Row row = database("PRAGMA table_info(settings)");
 
-	if (!database("PRAGMA quick_check") || (!row || row.Done()))
+	if (!row || row.Done())
 	{
 		cerr << "Database could not be opened. The file '" << filename << "' could not be opened. Please make sure the file is a valid optimization results database." << endl;
 		return;

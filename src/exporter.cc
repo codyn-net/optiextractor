@@ -360,16 +360,16 @@ Exporter::ExportMatrix(string const &table, string const &name)
 
 	Row row(0, 0);
 
-	if (!d_isSystematic)
-	{
-		row = d_database("SELECT * FROM " + table + " ORDER BY iteration, `index`");
-	}
-	else
+	if (d_isSystematic)
 	{
 		row = d_database("SELECT * FROM " + table + " ORDER BY `index`");
 	}
+	else
+	{
+		row = d_database("SELECT * FROM " + table + " ORDER BY iteration, `index`");
+	}
 
-	double data[size];
+	double *data = new double[size];
 	size_t ct = 0;
 	size_t len = dims[numdim - 1] + 2;
 
@@ -400,6 +400,7 @@ Exporter::ExportMatrix(string const &table, string const &name)
 	Write(var);
 
 	delete[] dims;
+	delete[] data;
 }
 
 void
@@ -443,18 +444,18 @@ Exporter::ExportData()
 		return;
 	}
 
-	matvar_t *data[size];
+	matvar_t **data = new matvar_t *[size];
 	size_t ct = 0;
 
 	Row row(0, 0);
 
-	if (!d_isSystematic)
+	if (d_isSystematic)
 	{
-		row = d_database("SELECT * FROM data ORDER BY iteration, `index`");
+		row = d_database("SELECT * FROM data ORDER BY `index`");
 	}
 	else
 	{
-		row = d_database("SELECT * FROM data ORDER BY `index`");
+		row = d_database("SELECT * FROM data ORDER BY iteration, `index`");
 	}
 
 	while (row && !row.Done())
@@ -501,6 +502,7 @@ Exporter::ExportData()
 	                     0));
 
 	delete[] dims;
+	delete[] data;
 }
 
 void

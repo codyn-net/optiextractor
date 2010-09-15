@@ -572,7 +572,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkVBox" id="vbox1">
+              <object class="GtkVBox" id="vbox_solution">
                 <property name="visible">True</property>
                 <property name="border_width">12</property>
                 <property name="spacing">6</property>
@@ -999,30 +999,33 @@ settings:</property>
               </packing>
             </child>
             <child>
-              <object class="GtkVBox" id="vbox3">
+              <object class="GtkVBox" id="vbox_log">
                 <property name="visible">True</property>
                 <property name="border_width">12</property>
                 <child>
-                  <object class="GtkScrolledWindow" id="scrolledwindow3">
+                  <object class="GtkScrolledWindow" id="scrolled_window_log">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="hscrollbar_policy">automatic</property>
                     <property name="vscrollbar_policy">automatic</property>
                     <property name="shadow_type">etched-in</property>
                     <child>
-                      <object class="GtkTreeView" id="treeview1">
+                      <object class="GtkTreeView" id="tree_view_log">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="model">list_store_log</property>
                         <property name="headers_clickable">False</property>
                         <property name="reorderable">True</property>
                         <property name="rules_hint">True</property>
-                        <property name="search_column">0</property>
+                        <property name="search_column">2</property>
+                        <property name="fixed_height_mode">True</property>
                         <child>
-                          <object class="GtkTreeViewColumn" id="treeviewcolumn16">
+                          <object class="GtkTreeViewColumn" id="tree_view_column_log_time">
                             <property name="title">Time</property>
+                            <property name="sizing">GTK_TREE_VIEW_COLUMN_FIXED</property>
+                            <property name="fixed_width">90</property>
                             <child>
-                              <object class="GtkCellRendererText" id="cellrenderertext14"/>
+                              <object class="GtkCellRendererText" id="cell_renderer_text_log_time"/>
                               <attributes>
                                 <attribute name="text">0</attribute>
                               </attributes>
@@ -1030,10 +1033,12 @@ settings:</property>
                           </object>
                         </child>
                         <child>
-                          <object class="GtkTreeViewColumn" id="treeviewcolumn17">
+                          <object class="GtkTreeViewColumn" id="tree_view_column_log_type">
                             <property name="title">Type</property>
+                            <property name="sizing">GTK_TREE_VIEW_COLUMN_FIXED</property>
+                            <property name="fixed_width">70</property>
                             <child>
-                              <object class="GtkCellRendererText" id="cellrenderertext15"/>
+                              <object class="GtkCellRendererText" id="cell_renderer_text_log_type"/>
                               <attributes>
                                 <attribute name="text">1</attribute>
                               </attributes>
@@ -1041,11 +1046,12 @@ settings:</property>
                           </object>
                         </child>
                         <child>
-                          <object class="GtkTreeViewColumn" id="treeviewcolumn18">
+                          <object class="GtkTreeViewColumn" id="tree_view_column_log_message">
                             <property name="title">Message</property>
+                            <property name="sizing">GTK_TREE_VIEW_COLUMN_FIXED</property>
                             <property name="expand">True</property>
                             <child>
-                              <object class="GtkCellRendererText" id="cellrenderertext16"/>
+                              <object class="GtkCellRendererText" id="cell_renderer_text_log_message"/>
                               <attributes>
                                 <attribute name="text">2</attribute>
                               </attributes>
