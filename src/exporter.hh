@@ -37,6 +37,7 @@ namespace optiextractor
 			void ExportSolutions();
 			void ExportData();
 			void ExportParameterValues();
+			void ExportParameterActive();
 			void ExportFitness();
 
 			void CalculateTotalProgress();
