@@ -30,6 +30,13 @@ Exporter::CalculateTotalProgress()
 	Row row = d_database("SELECT COUNT(*) FROM parameter_values");
 	d_total += row.Get<size_t>(0);
 
+	row = d_database("SELECT COUNT(*) FROM parameter_active");
+
+	if (row && !row.Done())
+	{
+		d_total += row.Get<size_t>(0);
+	}
+
 	row = d_database("SELECT COUNT(*) FROM fitness");
 	d_total += row.Get<size_t>(0);
 
@@ -420,6 +427,12 @@ Exporter::ExportParameterValues()
 }
 
 void
+Exporter::ExportParameterActive()
+{
+	ExportMatrix("parameter_active");
+}
+
+void
 Exporter::ExportFitness()
 {
 	// Write the fitness names
@@ -509,6 +522,7 @@ void
 Exporter::ExportSolutions()
 {
 	ExportParameterValues();
+	ExportParameterActive();
 	ExportFitness();
 	ExportData();
 }

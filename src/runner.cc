@@ -1,5 +1,6 @@
 #include "runner.hh"
 #include "dispatcher.hh"
+#include "utils.hh"
 
 #include <optimization/messages.hh>
 
@@ -110,28 +111,17 @@ Runner::FillData(sqlite::SQLite database, size_t iteration, size_t solution, Tas
 void
 Runner::FillParameters(sqlite::SQLite database, size_t iteration, size_t solution, Task &task)
 {
-	sqlite::Row names = database("PRAGMA table_info(`parameter_values`)");
-	vector<string> cols;
+	vector<string> cols = Utils::ActiveParameters(database, iteration, solution);
 	string colnames;
 
-	while (names && !names.Done())
+	for (size_t i = 0; i < cols.size(); ++i)
 	{
-		string name = names.Get<string>(1);
-		names.Next();
-
-		if (!String(name).StartsWith("_p_"))
-		{
-			continue;
-		}
-
-		cols.push_back(name.substr(3));
-
-		if (colnames != "")
+		if (i != 0)
 		{
 			colnames += ", ";
 		}
 
-		colnames += "parameter_values.`" + name + "`";
+		colnames += "parameter_values.`" + cols[i] + "`";
 	}
 
 	if (colnames == "")
@@ -139,10 +129,12 @@ Runner::FillParameters(sqlite::SQLite database, size_t iteration, size_t solutio
 		return;
 	}
 
-	sqlite::Row row = database() << "SELECT " << colnames << " FROM `parameter_values` WHERE "
-	                             << "parameter_values.`iteration` = " << iteration << " AND "
-	                             << "parameter_values.`index` = " << solution
-	                             << sqlite::SQLite::Query::End();
+	sqlite::Row row(0, 0);
+
+	row = database() << "SELECT " << colnames << " FROM `parameter_values` WHERE "
+	                 << "parameter_values.`iteration` = " << iteration << " AND "
+	                 << "parameter_values.`index` = " << solution
+	                 << sqlite::SQLite::Query::End();
 
 	if (!row || row.Done())
 	{
@@ -153,12 +145,14 @@ Runner::FillParameters(sqlite::SQLite database, size_t iteration, size_t solutio
 	{
 		Task::Parameter *parameter = task.add_parameters();
 
-		parameter->set_name(cols[i]);
+		string name = cols[i].substr(3);
+
+		parameter->set_name(name);
 		parameter->set_value(String(row.Get<string>(i)));
 
 		sqlite::Row row = database() << "SELECT `min`, `max` FROM boundaries WHERE "
 		                             << "boundaries.name = (SELECT parameters.boundary FROM parameters "
-		                             << " WHERE name = '" << cols[i] << "')"
+		                             << " WHERE name = '" << name << "')"
 		                             << sqlite::SQLite::Query::End();
 
 		if (row && !row.Done())
@@ -168,7 +162,7 @@ Runner::FillParameters(sqlite::SQLite database, size_t iteration, size_t solutio
 		}
 		else
 		{
-			cerr << "Could not read parameter boundary: '" << cols[i] << "'" << endl;
+			cerr << "Could not read parameter boundary: '" << name << "'" << endl;
 			
 			parameter->set_min(0);
 			parameter->set_max(0);

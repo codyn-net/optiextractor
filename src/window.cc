@@ -1,5 +1,6 @@
 #include "window.hh"
 #include "exporter.hh"
+#include "utils.hh"
 
 #include <jessevdk/os/os.hh>
 
@@ -63,6 +64,8 @@ Window::Clear()
 
 	d_logFilled = false;
 	d_solutionFilled = false;
+
+	d_window->set_title(Glib::get_application_name());
 }
 
 void
@@ -615,7 +618,7 @@ Window::OnFileQuit()
 }
 
 void
-Window::Open(sqlite::SQLite database)
+Window::Open(sqlite::SQLite database, Glib::RefPtr<Gio::File> file)
 {
 	Clear();
 
@@ -644,6 +647,11 @@ Window::Open(sqlite::SQLite database)
 		d_database("CREATE TABLE `optiextractor_overrides` (`name` TEXT, `value` TEXT)");
 	}
 
+	stringstream title;
+	title << file->get_basename() << " (" << file->get_parent()->get_path() << ") - " << Glib::get_application_name();
+
+	d_window->set_title(title.str());
+
 	Fill();
 }
 
@@ -652,13 +660,15 @@ Window::Open(string const &filename)
 {
 	Clear();
 
-	if (!FileSystem::FileExists(filename))
+	Glib::RefPtr<Gio::File> file = Gio::File::create_for_commandline_arg(filename);
+
+	if (!file->query_exists())
 	{
 		Error("<b>Database file does not exist</b>", "The file '<i>" + filename + "</i>' does not exist. Please make sure you open a valid optimization results database.");
 		return;
 	}
 
-	Open(sqlite::SQLite(filename));
+	Open(sqlite::SQLite(file->get_path()), file);
 }
 
 void
@@ -812,6 +822,61 @@ Window::RunSolution()
 }
 
 void
+Window::UpdateIds()
+{
+	size_t iteration = Get<Gtk::Range>("hscale_iteration")->get_value();
+	size_t solution = Get<Gtk::Range>("hscale_solution")->get_value();
+
+	if (solution == 0 && iteration != 0)
+	{
+		sqlite::Row res = d_database() << "SELECT `index` FROM solution WHERE `iteration` = "
+		                               << iteration << " ORDER BY `fitness` DESC LIMIT 1"
+		                               << sqlite::SQLite::Query::End();
+
+		if (!res || res.Done())
+		{
+			return;
+		}
+
+		d_solutionId = res.Get<int>(0);
+		d_iterationId = iteration - 1;
+	}
+	else if (iteration == 0 && solution != 0)
+	{
+		sqlite::Row res = d_database() << "SELECT `iteration` FROM solution WHERE `index` = "
+		                               << solution << " ORDER BY `fitness` DESC LIMIT 1"
+		                               << sqlite::SQLite::Query::End();
+
+		if (!res || res.Done())
+		{
+			return;
+		}
+
+		d_iterationId = res.Get<int>(0);
+		d_solutionId = solution - 1;
+	}
+	else if (iteration == 0 && solution == 0)
+	{
+		sqlite::Row res = d_database() << "SELECT `index`, `iteration` FROM solution "
+		                               << "ORDER BY `fitness` DESC LIMIT 1"
+		                               << sqlite::SQLite::Query::End();
+
+		if (!res || res.Done())
+		{
+			return;
+		}
+
+		d_solutionId = res.Get<int>(0);
+		d_iterationId = res.Get<int>(1);
+	}
+	else
+	{
+		d_solutionId = solution - 1;
+		d_iterationId = iteration - 1;
+	}
+}
+
+void
 Window::SolutionChanged()
 {
 	Get<Gtk::Label>("label_solution_iteration")->set_text("");
@@ -831,66 +896,22 @@ Window::SolutionChanged()
 		return;
 	}
 
-	sqlite::Row names = d_database("PRAGMA table_info(`parameter_values`)");
-	vector<string> cols;
-	string colnames;
+	UpdateIds();
 
-	while (names && !names.Done())
+	vector<string> cols = Utils::ActiveParameters(d_database, d_iterationId, d_solutionId);
+	stringstream colnames;
+
+	for (size_t i = 0; i < cols.size(); ++i)
 	{
-		string name = names.Get<string>(1);
-		names.Next();
-
-		if (!String(name).StartsWith("_p_"))
-		{
-			continue;
-		}
-
-		cols.push_back(name.substr(3));
-
-		if (colnames != "")
-		{
-			colnames += ", ";
-		}
-
-		colnames += "parameter_values.`" + name + "`";
+		colnames << ", parameter_values.`" << cols[i] << "`";
 	}
 
-	size_t iteration = Get<Gtk::Range>("hscale_iteration")->get_value();
-	size_t solution = Get<Gtk::Range>("hscale_solution")->get_value();
-
-	stringstream q;
-
-	if (colnames != "")
-	{
-		colnames = ", " + colnames;
-	}
-
-	sqlite::Row paramExists = d_database("PRAGMA table_info(parameter_values)");
-	string join;
-
-	if (paramExists && !paramExists.Done())
-	{
-		join = "LEFT JOIN parameter_values ON (parameter_values.`iteration` = solution.`iteration` AND parameter_values.`index` = solution.`index`)";
-	}
-
-	q << "SELECT solution.`iteration`, solution.`index`, solution.`fitness` " << colnames << " FROM solution " << join;
-
-	if (solution == 0 && iteration != 0)
-	{
-		q << " WHERE solution.`iteration` = " << (iteration - 1);
-	}
-	else if (iteration == 0 && solution != 0)
-	{
-		q << " WHERE solution.`index` = " << (solution - 1);
-	}
-	else if (iteration != 0 && solution != 0)
-	{
-		q << " WHERE solution.`iteration` = " << (iteration - 1) << " AND solution.`index` = " << (solution - 1);
-	}
-
-	q << " ORDER BY `fitness` DESC LIMIT 1";
-
-	sqlite::Row row = d_database(q.str());
+	sqlite::Row row = d_database() << "SELECT solution.`fitness` " << colnames.str() << " FROM solution "
+	                               << "LEFT JOIN parameter_values ON "
+	                               << "(parameter_values.`iteration` = solution.`iteration` AND parameter_values.`index` = solution.`index`) "
+	                               << "WHERE solution.`iteration` = " << d_iterationId << " AND "
+	                               << "solution.`index` = " << d_solutionId
+	                               << sqlite::SQLite::Query::End();
 
 	if (row.Done())
 	{
@@ -898,8 +919,6 @@ Window::SolutionChanged()
 	}
 
 	{
-		d_iterationId = row.Get<size_t>(0);
-
 		stringstream s;
 		s << (d_iterationId + 1);
 
@@ -907,9 +926,7 @@ Window::SolutionChanged()
 	}
 
 	{
-		d_solutionId = row.Get<size_t>(1);
 		stringstream s;
-
 		s << (d_solutionId + 1);
 
 		Get<Gtk::Label>("label_solution_solution")->set_text(s.str());
@@ -919,8 +936,8 @@ Window::SolutionChanged()
 	{
 		Gtk::TreeRow r = *(store_solutions->append());
 
-		string name = cols[i];
-		string value = row.Get<string>(i + 3);
+		string name = cols[i].substr(3);
+		string value = row.Get<string>(i + 1);
 
 		r.set_value(0, name);
 		r.set_value(1, value);
@@ -933,7 +950,7 @@ Window::SolutionChanged()
 
 	if (row && !row.Done())
 	{
-		names = d_database("PRAGMA table_info(`fitness`)");
+		sqlite::Row names = d_database("PRAGMA table_info(`fitness`)");
 
 		while (names && !names.Done())
 		{

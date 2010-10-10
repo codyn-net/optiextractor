@@ -42,11 +42,12 @@ namespace optiextractor
 			Glib::RefPtr<T> Get(std::string const &name);
 
 			void Open(std::string const &string);
-			void Open(jessevdk::db::sqlite::SQLite database);
 
 			Gtk::Window &GtkWindow();
 		private:
 			/* Private functions */
+			void Open(jessevdk::db::sqlite::SQLite database, Glib::RefPtr<Gio::File> file);
+
 			void InitializeUI();
 			void Error(std::string const &error, std::string const &secondary = "");
 	
@@ -95,6 +96,8 @@ namespace optiextractor
 
 			void LogMapped();
 			void SolutionMapped();
+
+			void UpdateIds();
 	};
 
 	template <typename T>
