@@ -133,7 +133,7 @@ Runner::FillParameters(sqlite::SQLite database, size_t iteration, size_t solutio
 
 	row = database() << "SELECT " << colnames << " FROM `parameter_values` WHERE "
 	                 << "parameter_values.`iteration` = " << iteration << " AND "
-	                 << "parmater_values.`index` = " << solution
+	                 << "parameter_values.`index` = " << solution
 	                 << sqlite::SQLite::Query::End();
 
 	if (!row || row.Done())
