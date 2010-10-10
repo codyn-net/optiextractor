@@ -20,13 +20,15 @@ optiextractor_SOURCES = \
 	exporter.cc \
 	runner.cc \
 	window.cc \
-	dispatcher.cc
+	dispatcher.cc \
+	utils.cc
 
 noinst_HEADERS = \
 	application.hh \
 	exporter.hh \
 	runner.hh \
 	window.hh \
-	dispatcher.hh
+	dispatcher.hh \
+	utils.hh
 
 EXTRA_DIST = $(noinst_HEADERS)

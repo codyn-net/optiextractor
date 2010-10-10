@@ -95,6 +95,8 @@ namespace optiextractor
 
 			void LogMapped();
 			void SolutionMapped();
+
+			void UpdateIds();
 	};
 
 	template <typename T>
