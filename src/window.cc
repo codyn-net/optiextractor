@@ -64,6 +64,8 @@ Window::Clear()
 
 	d_logFilled = false;
 	d_solutionFilled = false;
+
+	d_window->set_title(Glib::get_application_name());
 }
 
 void
@@ -616,7 +618,7 @@ Window::OnFileQuit()
 }
 
 void
-Window::Open(sqlite::SQLite database)
+Window::Open(sqlite::SQLite database, Glib::RefPtr<Gio::File> file)
 {
 	Clear();
 
@@ -645,6 +647,11 @@ Window::Open(sqlite::SQLite database)
 		d_database("CREATE TABLE `optiextractor_overrides` (`name` TEXT, `value` TEXT)");
 	}
 
+	stringstream title;
+	title << file->get_basename() << " (" << file->get_parent()->get_path() << ") - " << Glib::get_application_name();
+
+	d_window->set_title(title.str());
+
 	Fill();
 }
 
@@ -653,13 +660,15 @@ Window::Open(string const &filename)
 {
 	Clear();
 
-	if (!FileSystem::FileExists(filename))
+	Glib::RefPtr<Gio::File> file = Gio::File::create_for_commandline_arg(filename);
+
+	if (!file->query_exists())
 	{
 		Error("<b>Database file does not exist</b>", "The file '<i>" + filename + "</i>' does not exist. Please make sure you open a valid optimization results database.");
 		return;
 	}
 
-	Open(sqlite::SQLite(filename));
+	Open(sqlite::SQLite(file->get_path()), file);
 }
 
 void
