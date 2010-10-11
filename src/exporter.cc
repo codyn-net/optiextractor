@@ -30,11 +30,16 @@ Exporter::CalculateTotalProgress()
 	Row row = d_database("SELECT COUNT(*) FROM parameter_values");
 	d_total += row.Get<size_t>(0);
 
-	row = d_database("SELECT COUNT(*) FROM parameter_active");
+	row = d_database("PRAGMA table_info(parameter_active)");
 
 	if (row && !row.Done())
 	{
-		d_total += row.Get<size_t>(0);
+		row = d_database("SELECT COUNT(*) FROM parameter_active");
+
+		if (row && !row.Done())
+		{
+			d_total += row.Get<size_t>(0);
+		}
 	}
 
 	row = d_database("SELECT COUNT(*) FROM fitness");
