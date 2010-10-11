@@ -10,7 +10,14 @@ using namespace jessevdk::base;
 vector<string>
 Utils::FilterActive(sqlite::SQLite database, size_t iteration, size_t solution, vector<string> const &ret)
 {
-	sqlite::Row hasactive = database("SELECT COUNT(*) FROM `parameter_active`");
+	sqlite::Row hasactive = database("PRAGMA table_info(parameter_active)");
+
+	if (!hasactive || hasactive.Done())
+	{
+		return ret;
+	}
+
+	hasactive = database("SELECT COUNT(*) FROM `parameter_active`");
 
 	if (!hasactive || hasactive.Done())
 	{

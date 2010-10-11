@@ -429,7 +429,12 @@ Exporter::ExportParameterValues()
 void
 Exporter::ExportParameterActive()
 {
-	ExportMatrix("parameter_active");
+	Row row = d_database("PRAGMA table_info(parameter_active)");
+
+	if (row && !row.Done())
+	{
+		ExportMatrix("parameter_active");
+	}
 }
 
 void
