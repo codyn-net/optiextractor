@@ -30,6 +30,11 @@ Utils::FilterActive(sqlite::SQLite database, size_t iteration, size_t solution, 
 	                                << "`index` = " << solution
 	                                << sqlite::SQLite::Query::End();
 
+	if (!active || active.Done())
+	{
+		return ret;
+	}
+
 	vector<string> filtered;
 
 	for (size_t i = 0; i < ret.size(); ++i)
