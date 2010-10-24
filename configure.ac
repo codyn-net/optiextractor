@@ -20,7 +20,7 @@ m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 
 PKG_CHECK_MODULES(PACKAGE_OPTIEXTRACTOR, [
 	gtkmm-2.4 >= 2.12
-	liboptimization-2.0 >= 2.2
+	liboptimization-2.0 >= 2.3
 	matio
 ])
 
