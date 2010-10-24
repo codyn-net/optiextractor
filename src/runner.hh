@@ -44,6 +44,8 @@ namespace optiextractor
 
 			void FillData(jessevdk::db::sqlite::SQLite database, size_t iteration, size_t solution, optimization::messages::task::Task &task);
 			void FillParameters(jessevdk::db::sqlite::SQLite database, size_t iteration, size_t solution, optimization::messages::task::Task &task);
+
+			std::string ExpandVariables(std::string const &s);
 	};
 
 	inline std::string const &

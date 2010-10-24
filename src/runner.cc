@@ -239,6 +239,42 @@ Runner::Run(sqlite::SQLite database, size_t iteration, size_t solution)
 	return Run(task, Dispatcher::Resolve(dispatcher));
 }
 
+string
+Runner::ExpandVariables(string const &s)
+{
+	string ret;
+	size_t pos = 0;
+
+	while (pos < s.size())
+	{
+		size_t epos = s.find_first_of('$', pos);
+
+		if (epos == string::npos)
+		{
+			break;
+		}
+
+		size_t end = epos + 1;
+
+		while (end < s.size() && (isalnum(s[end]) || s[end] == '_'))
+		{
+			++end;
+		}
+
+		string val = Glib::getenv(s.substr(epos + 1, end - epos - 2));
+
+		ret += s.substr(pos, epos - pos) + val;
+		pos = end;
+	}
+
+	if (pos < s.size())
+	{
+		ret += s.substr(pos);
+	}
+
+	return ret;
+}
+
 bool
 Runner::Run(Task const &task, string const &executable)
 {
@@ -280,7 +316,7 @@ Runner::Run(Task const &task, string const &executable)
 
 			if (parts.size() == 2)
 			{
-				env[key] = String(parts[1]).Strip();
+				env[key] = ExpandVariables(String(parts[1]).Strip());
 			}
 			else if (parts.size() == 1)
 			{
