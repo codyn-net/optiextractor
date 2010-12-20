@@ -89,7 +89,8 @@
           <object class="GtkNotebook" id="notebook">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
-            <property name="border_width">6</property>
+            <property name="show_tabs">False</property>
+            <property name="show_border">False</property>
             <child>
               <object class="GtkVBox" id="vbox_summary">
                 <property name="visible">True</property>
@@ -100,13 +101,14 @@
                     <property name="visible">True</property>
                     <property name="n_rows">3</property>
                     <property name="n_columns">2</property>
-                    <property name="column_spacing">3</property>
-                    <property name="row_spacing">3</property>
+                    <property name="column_spacing">12</property>
+                    <property name="row_spacing">6</property>
                     <child>
                       <object class="GtkLabel" id="label6">
                         <property name="visible">True</property>
                         <property name="xalign">0</property>
-                        <property name="label" translatable="yes">Optimizer:</property>
+                        <property name="label" translatable="yes">&lt;b&gt;Optimizer:&lt;/b&gt;</property>
+                        <property name="use_markup">True</property>
                       </object>
                       <packing>
                         <property name="x_options">GTK_SHRINK | GTK_FILL</property>
@@ -117,7 +119,8 @@
                       <object class="GtkLabel" id="label7">
                         <property name="visible">True</property>
                         <property name="xalign">0</property>
-                        <property name="label" translatable="yes">Best fitness:</property>
+                        <property name="label" translatable="yes">&lt;b&gt;Best fitness:&lt;/b&gt;</property>
+                        <property name="use_markup">True</property>
                       </object>
                       <packing>
                         <property name="top_attach">1</property>
@@ -130,7 +133,8 @@
                       <object class="GtkLabel" id="label8">
                         <property name="visible">True</property>
                         <property name="xalign">0</property>
-                        <property name="label" translatable="yes">Time:</property>
+                        <property name="label" translatable="yes">&lt;b&gt;Time:&lt;/b&gt;</property>
+                        <property name="use_markup">True</property>
                       </object>
                       <packing>
                         <property name="top_attach">2</property>
@@ -180,15 +184,6 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkHSeparator" id="hseparator2">
-                    <property name="visible">True</property>
-                  </object>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="position">1</property>
-                  </packing>
-                </child>
-                <child>
                   <object class="GtkFrame" id="frame_settings">
                     <property name="visible">True</property>
                     <property name="label_xalign">0</property>
@@ -196,6 +191,7 @@
                     <child>
                       <object class="GtkAlignment" id="alignment_settings">
                         <property name="visible">True</property>
+                        <property name="top_padding">6</property>
                         <property name="left_padding">12</property>
                         <child>
                           <object class="GtkScrolledWindow" id="scrolled_window_settings">
@@ -209,10 +205,10 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="model">list_store_settings</property>
+                                <property name="headers_visible">False</property>
                                 <property name="headers_clickable">False</property>
                                 <property name="rules_hint">True</property>
                                 <property name="search_column">0</property>
-                                <property name="headers_visible">False</property>
                                 <child>
                                   <object class="GtkTreeViewColumn" id="treeviewcolumn1">
                                     <property name="resizable">True</property>
@@ -231,7 +227,9 @@
                                     <property name="resizable">True</property>
                                     <property name="title">Value</property>
                                     <child>
-                                      <object class="GtkCellRendererText" id="cellrenderertext4"/>
+                                      <object class="GtkCellRendererText" id="cellrenderertext4">
+                                        <property name="editable">True</property>
+                                      </object>
                                       <attributes>
                                         <attribute name="text">1</attribute>
                                       </attributes>
@@ -253,7 +251,7 @@
                     </child>
                   </object>
                   <packing>
-                    <property name="position">2</property>
+                    <property name="position">1</property>
                   </packing>
                 </child>
                 <child>
@@ -264,6 +262,7 @@
                     <child>
                       <object class="GtkAlignment" id="alignment_fitness">
                         <property name="visible">True</property>
+                        <property name="top_padding">6</property>
                         <property name="left_padding">12</property>
                         <child>
                           <object class="GtkScrolledWindow" id="scrolled_window_fitness">
@@ -277,10 +276,10 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="model">list_store_fitness</property>
+                                <property name="headers_visible">False</property>
                                 <property name="headers_clickable">False</property>
                                 <property name="rules_hint">True</property>
                                 <property name="search_column">0</property>
-                                <property name="headers_visible">False</property>
                                 <child>
                                   <object class="GtkTreeViewColumn" id="treeviewcolumn8">
                                     <property name="resizable">True</property>
@@ -299,7 +298,9 @@
                                     <property name="resizable">True</property>
                                     <property name="title">Value</property>
                                     <child>
-                                      <object class="GtkCellRendererText" id="cellrenderertext9"/>
+                                      <object class="GtkCellRendererText" id="cellrenderertext9">
+                                        <property name="editable">True</property>
+                                      </object>
                                       <attributes>
                                         <attribute name="text">1</attribute>
                                       </attributes>
@@ -321,7 +322,7 @@
                     </child>
                   </object>
                   <packing>
-                    <property name="position">3</property>
+                    <property name="position">2</property>
                   </packing>
                 </child>
                 <child>
@@ -332,6 +333,7 @@
                     <child>
                       <object class="GtkAlignment" id="alignment_dispatcher">
                         <property name="visible">True</property>
+                        <property name="top_padding">6</property>
                         <property name="left_padding">12</property>
                         <child>
                           <object class="GtkScrolledWindow" id="scrolled_window_dispatcher">
@@ -345,10 +347,10 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="model">list_store_dispatcher</property>
+                                <property name="headers_visible">False</property>
                                 <property name="headers_clickable">False</property>
                                 <property name="rules_hint">True</property>
                                 <property name="search_column">0</property>
-                                <property name="headers_visible">False</property>
                                 <child>
                                   <object class="GtkTreeViewColumn" id="treeviewcolumn10">
                                     <property name="resizable">True</property>
@@ -367,7 +369,9 @@
                                     <property name="resizable">True</property>
                                     <property name="title">Value</property>
                                     <child>
-                                      <object class="GtkCellRendererText" id="cellrenderertext11"/>
+                                      <object class="GtkCellRendererText" id="cellrenderertext11">
+                                        <property name="editable">True</property>
+                                      </object>
                                       <attributes>
                                         <attribute name="text">1</attribute>
                                       </attributes>
@@ -389,7 +393,7 @@
                     </child>
                   </object>
                   <packing>
-                    <property name="position">4</property>
+                    <property name="position">3</property>
                   </packing>
                 </child>
               </object>
@@ -429,10 +433,10 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="model">list_store_boundaries</property>
+                                <property name="headers_visible">False</property>
                                 <property name="headers_clickable">False</property>
                                 <property name="rules_hint">True</property>
                                 <property name="search_column">0</property>
-                                <property name="headers_visible">False</property>
                                 <child>
                                   <object class="GtkTreeViewColumn" id="treeviewcolumn3">
                                     <property name="resizable">True</property>
@@ -451,7 +455,9 @@
                                     <property name="resizable">True</property>
                                     <property name="title">Lower</property>
                                     <child>
-                                      <object class="GtkCellRendererText" id="cellrenderertext6"/>
+                                      <object class="GtkCellRendererText" id="cellrenderertext6">
+                                        <property name="editable">True</property>
+                                      </object>
                                       <attributes>
                                         <attribute name="text">1</attribute>
                                       </attributes>
@@ -509,10 +515,10 @@
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="model">list_store_parameters</property>
+                                <property name="headers_visible">False</property>
                                 <property name="headers_clickable">False</property>
                                 <property name="rules_hint">True</property>
                                 <property name="search_column">0</property>
-                                <property name="headers_visible">False</property>
                                 <child>
                                   <object class="GtkTreeViewColumn" id="treeviewcolumn6">
                                     <property name="resizable">True</property>
@@ -531,7 +537,9 @@
                                     <property name="resizable">True</property>
                                     <property name="title">Boundary</property>
                                     <child>
-                                      <object class="GtkCellRendererText" id="cellrenderertext2"/>
+                                      <object class="GtkCellRendererText" id="cellrenderertext2">
+                                        <property name="editable">True</property>
+                                      </object>
                                       <attributes>
                                         <attribute name="text">1</attribute>
                                       </attributes>
@@ -580,7 +588,7 @@
                   <object class="GtkTable" id="table1">
                     <property name="visible">True</property>
                     <property name="n_rows">2</property>
-                    <property name="n_columns">2</property>
+                    <property name="n_columns">4</property>
                     <property name="column_spacing">3</property>
                     <property name="row_spacing">3</property>
                     <child>
@@ -608,9 +616,11 @@
                       <object class="GtkHScale" id="hscale_solution">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="adjustment">adjustment_solution</property>
                         <property name="restrict_to_fill_level">False</property>
                         <property name="fill_level">0</property>
                         <property name="digits">0</property>
+                        <property name="draw_value">False</property>
                         <property name="value_pos">right</property>
                       </object>
                       <packing>
@@ -624,14 +634,71 @@
                       <object class="GtkHScale" id="hscale_iteration">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="adjustment">adjustment_iteration</property>
                         <property name="restrict_to_fill_level">False</property>
                         <property name="fill_level">0</property>
                         <property name="digits">0</property>
+                        <property name="draw_value">False</property>
                         <property name="value_pos">right</property>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
                         <property name="right_attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="check_button_solution_best">
+                        <property name="label" translatable="yes">Best</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">False</property>
+                        <property name="draw_indicator">True</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">3</property>
+                        <property name="right_attach">4</property>
+                        <property name="top_attach">1</property>
+                        <property name="bottom_attach">2</property>
+                        <property name="x_options">GTK_FILL</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkCheckButton" id="check_button_iteration_best">
+                        <property name="label" translatable="yes">Best</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="receives_default">False</property>
+                        <property name="draw_indicator">True</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">3</property>
+                        <property name="right_attach">4</property>
+                        <property name="x_options">GTK_FILL</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_solution_iteration">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">0</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">2</property>
+                        <property name="right_attach">3</property>
+                        <property name="x_options">GTK_FILL</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label_solution_solution">
+                        <property name="visible">True</property>
+                        <property name="xalign">1</property>
+                        <property name="label" translatable="yes">0</property>
+                      </object>
+                      <packing>
+                        <property name="left_attach">2</property>
+                        <property name="right_attach">3</property>
+                        <property name="top_attach">1</property>
+                        <property name="bottom_attach">2</property>
+                        <property name="x_options">GTK_FILL</property>
                       </packing>
                     </child>
                   </object>
@@ -652,31 +719,48 @@
                 <child>
                   <object class="GtkTable" id="table2">
                     <property name="visible">True</property>
-                    <property name="n_rows">5</property>
+                    <property name="n_rows">3</property>
                     <property name="n_columns">2</property>
                     <property name="column_spacing">12</property>
                     <property name="row_spacing">3</property>
                     <child>
-                      <object class="GtkLabel" id="label_solution_solution">
+                      <object class="GtkLabel" id="label4">
                         <property name="visible">True</property>
                         <property name="xalign">0</property>
+                        <property name="yalign">0</property>
+                        <property name="label" translatable="yes">Fitness:</property>
                       </object>
                       <packing>
-                        <property name="left_attach">1</property>
-                        <property name="right_attach">2</property>
-                        <property name="top_attach">1</property>
-                        <property name="bottom_attach">2</property>
+                        <property name="x_options">GTK_SHRINK | GTK_FILL</property>
                         <property name="y_options">GTK_SHRINK | GTK_FILL</property>
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkLabel" id="label_solution_iteration">
+                      <object class="GtkLabel" id="label5">
                         <property name="visible">True</property>
                         <property name="xalign">0</property>
+                        <property name="yalign">0</property>
+                        <property name="label" translatable="yes">Parameters:</property>
                       </object>
                       <packing>
-                        <property name="left_attach">1</property>
-                        <property name="right_attach">2</property>
+                        <property name="top_attach">1</property>
+                        <property name="bottom_attach">2</property>
+                        <property name="x_options">GTK_SHRINK | GTK_FILL</property>
+                        <property name="y_options">GTK_SHRINK | GTK_FILL</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="label10">
+                        <property name="visible">True</property>
+                        <property name="xalign">0</property>
+                        <property name="yalign">0</property>
+                        <property name="label" translatable="yes">Override
+settings:</property>
+                      </object>
+                      <packing>
+                        <property name="top_attach">2</property>
+                        <property name="bottom_attach">3</property>
+                        <property name="x_options">GTK_SHRINK | GTK_FILL</property>
                         <property name="y_options">GTK_SHRINK | GTK_FILL</property>
                       </packing>
                     </child>
@@ -692,10 +776,10 @@
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="model">list_store_solution_fitness</property>
+                            <property name="headers_visible">False</property>
                             <property name="headers_clickable">False</property>
                             <property name="rules_hint">True</property>
                             <property name="search_column">0</property>
-                            <property name="headers_visible">False</property>
                             <child>
                               <object class="GtkTreeViewColumn" id="tree_view_column_solution_fitness_name">
                                 <property name="min_width">200</property>
@@ -712,7 +796,9 @@
                               <object class="GtkTreeViewColumn" id="tree_view_column_solution_fitness_value">
                                 <property name="title">Value</property>
                                 <child>
-                                  <object class="GtkCellRendererText" id="cell_renderer_text_solution_fitness_value"/>
+                                  <object class="GtkCellRendererText" id="cell_renderer_text_solution_fitness_value">
+                                    <property name="editable">True</property>
+                                  </object>
                                   <attributes>
                                     <attribute name="text">1</attribute>
                                   </attributes>
@@ -725,36 +811,6 @@
                       <packing>
                         <property name="left_attach">1</property>
                         <property name="right_attach">2</property>
-                        <property name="top_attach">2</property>
-                        <property name="bottom_attach">3</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="label4">
-                        <property name="visible">True</property>
-                        <property name="xalign">0</property>
-                        <property name="yalign">0</property>
-                        <property name="label" translatable="yes">Fitness:</property>
-                      </object>
-                      <packing>
-                        <property name="top_attach">2</property>
-                        <property name="bottom_attach">3</property>
-                        <property name="x_options">GTK_SHRINK | GTK_FILL</property>
-                        <property name="y_options">GTK_SHRINK | GTK_FILL</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="label5">
-                        <property name="visible">True</property>
-                        <property name="xalign">0</property>
-                        <property name="yalign">0</property>
-                        <property name="label" translatable="yes">Parameters:</property>
-                      </object>
-                      <packing>
-                        <property name="top_attach">3</property>
-                        <property name="bottom_attach">4</property>
-                        <property name="x_options">GTK_SHRINK | GTK_FILL</property>
-                        <property name="y_options">GTK_SHRINK | GTK_FILL</property>
                       </packing>
                     </child>
                     <child>
@@ -769,10 +825,10 @@
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="model">list_store_solutions</property>
+                            <property name="headers_visible">False</property>
                             <property name="headers_clickable">False</property>
                             <property name="rules_hint">True</property>
                             <property name="search_column">0</property>
-                            <property name="headers_visible">False</property>
                             <child>
                               <object class="GtkTreeViewColumn" id="treeviewcolumn12">
                                 <property name="min_width">200</property>
@@ -789,7 +845,9 @@
                               <object class="GtkTreeViewColumn" id="treeviewcolumn13">
                                 <property name="title">Value</property>
                                 <child>
-                                  <object class="GtkCellRendererText" id="cellrenderertext13"/>
+                                  <object class="GtkCellRendererText" id="cellrenderertext13">
+                                    <property name="editable">True</property>
+                                  </object>
                                   <attributes>
                                     <attribute name="text">1</attribute>
                                   </attributes>
@@ -802,47 +860,8 @@
                       <packing>
                         <property name="left_attach">1</property>
                         <property name="right_attach">2</property>
-                        <property name="top_attach">3</property>
-                        <property name="bottom_attach">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="label3">
-                        <property name="visible">True</property>
-                        <property name="xalign">0</property>
-                        <property name="label" translatable="yes">Solution:</property>
-                      </object>
-                      <packing>
                         <property name="top_attach">1</property>
                         <property name="bottom_attach">2</property>
-                        <property name="x_options">GTK_SHRINK | GTK_FILL</property>
-                        <property name="y_options">GTK_SHRINK | GTK_FILL</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="label9">
-                        <property name="visible">True</property>
-                        <property name="xalign">0</property>
-                        <property name="label" translatable="yes">Iteration:</property>
-                      </object>
-                      <packing>
-                        <property name="x_options">GTK_SHRINK | GTK_FILL</property>
-                        <property name="y_options">GTK_SHRINK | GTK_FILL</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="label10">
-                        <property name="visible">True</property>
-                        <property name="xalign">0</property>
-                        <property name="yalign">0</property>
-                        <property name="label" translatable="yes">Override
-settings:</property>
-                      </object>
-                      <packing>
-                        <property name="top_attach">4</property>
-                        <property name="bottom_attach">5</property>
-                        <property name="x_options">GTK_SHRINK | GTK_FILL</property>
-                        <property name="y_options">GTK_SHRINK | GTK_FILL</property>
                       </packing>
                     </child>
                     <child>
@@ -861,10 +880,10 @@ settings:</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="model">list_store_override</property>
+                                <property name="headers_visible">False</property>
                                 <property name="headers_clickable">False</property>
                                 <property name="rules_hint">True</property>
                                 <property name="search_column">0</property>
-                                <property name="headers_visible">False</property>
                                 <child>
                                   <object class="GtkTreeViewColumn" id="treeviewcolumn14">
                                     <property name="min_width">150</property>
@@ -950,8 +969,8 @@ settings:</property>
                       <packing>
                         <property name="left_attach">1</property>
                         <property name="right_attach">2</property>
-                        <property name="top_attach">4</property>
-                        <property name="bottom_attach">5</property>
+                        <property name="top_attach">2</property>
+                        <property name="bottom_attach">3</property>
                       </packing>
                     </child>
                   </object>
@@ -965,7 +984,7 @@ settings:</property>
                     <property name="layout_style">end</property>
                     <child>
                       <object class="GtkButton" id="button_execute">
-                        <property name="label" translatable="yes">gtk-execute</property>
+                        <property name="label">gtk-execute</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
@@ -1021,9 +1040,9 @@ settings:</property>
                         <property name="fixed_height_mode">True</property>
                         <child>
                           <object class="GtkTreeViewColumn" id="tree_view_column_log_time">
-                            <property name="title">Time</property>
-                            <property name="sizing">GTK_TREE_VIEW_COLUMN_FIXED</property>
+                            <property name="sizing">fixed</property>
                             <property name="fixed_width">90</property>
+                            <property name="title">Time</property>
                             <child>
                               <object class="GtkCellRendererText" id="cell_renderer_text_log_time"/>
                               <attributes>
@@ -1034,9 +1053,9 @@ settings:</property>
                         </child>
                         <child>
                           <object class="GtkTreeViewColumn" id="tree_view_column_log_type">
-                            <property name="title">Type</property>
-                            <property name="sizing">GTK_TREE_VIEW_COLUMN_FIXED</property>
+                            <property name="sizing">fixed</property>
                             <property name="fixed_width">70</property>
+                            <property name="title">Type</property>
                             <child>
                               <object class="GtkCellRendererText" id="cell_renderer_text_log_type"/>
                               <attributes>
@@ -1047,8 +1066,8 @@ settings:</property>
                         </child>
                         <child>
                           <object class="GtkTreeViewColumn" id="tree_view_column_log_message">
+                            <property name="sizing">fixed</property>
                             <property name="title">Message</property>
-                            <property name="sizing">GTK_TREE_VIEW_COLUMN_FIXED</property>
                             <property name="expand">True</property>
                             <child>
                               <object class="GtkCellRendererText" id="cell_renderer_text_log_message"/>
@@ -1082,6 +1101,76 @@ settings:</property>
             </child>
           </object>
           <packing>
+            <property name="pack_type">end</property>
+            <property name="position">1</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkHButtonBox" id="hbuttonbox">
+            <property name="visible">True</property>
+            <property name="border_width">12</property>
+            <property name="spacing">12</property>
+            <property name="layout_style">spread</property>
+            <child>
+              <object class="GtkRadioButton" id="radio_button_summary">
+                <property name="label" translatable="yes">Summary</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <property name="active">True</property>
+                <property name="draw_indicator">False</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">0</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkRadioButton" id="radio_button_parameters">
+                <property name="label" translatable="yes">Parameters</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <property name="draw_indicator">False</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkRadioButton" id="radio_button_solution">
+                <property name="label" translatable="yes">Solution</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <property name="draw_indicator">False</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">2</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkRadioButton" id="radio_button_log">
+                <property name="label" translatable="yes">Log</property>
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
+                <property name="draw_indicator">False</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">3</property>
+              </packing>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
             <property name="pack_type">end</property>
             <property name="position">0</property>
           </packing>
@@ -1178,7 +1267,7 @@ during optimization.</property>
             <property name="layout_style">end</property>
             <child>
               <object class="GtkButton" id="button_dispatcher_cancel">
-                <property name="label" translatable="yes">gtk-cancel</property>
+                <property name="label">gtk-cancel</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -1192,7 +1281,7 @@ during optimization.</property>
             </child>
             <child>
               <object class="GtkButton" id="button_dispatcher_ok">
-                <property name="label" translatable="yes">gtk-execute</property>
+                <property name="label">gtk-execute</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -1313,7 +1402,7 @@ during optimization.</property>
             <property name="layout_style">end</property>
             <child>
               <object class="GtkButton" id="button_response_close">
-                <property name="label" translatable="yes">gtk-close</property>
+                <property name="label">gtk-close</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -1337,5 +1426,15 @@ during optimization.</property>
     <action-widgets>
       <action-widget response="-7">button_response_close</action-widget>
     </action-widgets>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_solution">
+    <property name="upper">100</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="adjustment_iteration">
+    <property name="upper">100</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
   </object>
 </interface>
