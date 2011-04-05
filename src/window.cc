@@ -78,6 +78,7 @@ Window::DestroyDialog(int response)
 	if (d_dialog)
 	{
 		delete d_dialog;
+		d_dialog = 0;
 	}
 }
 
