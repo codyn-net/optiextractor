@@ -43,6 +43,7 @@ Window::Clear()
 	Get<Gtk::ListStore>("list_store_parameters")->clear();
 	Get<Gtk::ListStore>("list_store_boundaries")->clear();
 	Get<Gtk::ListStore>("list_store_solutions")->clear();
+	Get<Gtk::ListStore>("list_store_data")->clear();
 	Get<Gtk::ListStore>("list_store_solution_fitness")->clear();
 	Get<Gtk::ListStore>("list_store_override")->clear();
 	Get<Gtk::ListStore>("list_store_log")->clear();
@@ -347,14 +348,18 @@ Window::HandleRunnerStopped()
 	d_builder->get_widget("dialog_response", dialog);
 
 	Glib::RefPtr<Gtk::Label> label = Get<Gtk::Label>("label_response_info");
+	Glib::RefPtr<Gtk::Image> image = Get<Gtk::Image>("image_response_icon");
 	Glib::RefPtr<Gtk::TextView> tv = Get<Gtk::TextView>("text_view_response_info");
 	Glib::RefPtr<Gtk::ScrolledWindow> sw = Get<Gtk::ScrolledWindow>("scrolled_window_response_info");
+	Glib::RefPtr<Gtk::ScrolledWindow> swf = Get<Gtk::ScrolledWindow>("scrolled_window_response_fitness");
 
 	dialog->set_transient_for(*d_window);
 
 	if (d_lastResponse.status() == Response::Failed)
 	{
 		string message;
+
+		image->set(Gtk::Stock::DIALOG_ERROR, Gtk::ICON_SIZE_DIALOG);
 
 		switch (d_lastResponse.failure().type())
 		{
@@ -397,25 +402,29 @@ Window::HandleRunnerStopped()
 		{
 			sw->hide();
 		}
+
+		swf->hide();
 	}
 	else
 	{
-		stringstream s;
-		s << "Solution ran successfully: ";
+		Glib::RefPtr<Gtk::ListStore> store = Get<Gtk::ListStore>("list_store_response_fitness");
+		image->set(Gtk::Stock::DIALOG_INFO, Gtk::ICON_SIZE_DIALOG);
 
 		for (int i = 0; i < d_lastResponse.fitness_size(); ++i)
 		{
 			Response::Fitness const &fitness = d_lastResponse.fitness(i);
 
-			if (i != 0)
-			{
-				s << ", ";
-			}
+			Gtk::TreeIter iter = store->append();
+			Gtk::TreeRow row = *iter;
+			stringstream val;
 
-			s << fitness.name() << " = " << fitness.value() << endl;
+			val << fitness.value();
+
+			row.set_value(0, fitness.name());
+			row.set_value(1, val.str());
 		}
 
-		label->set_text(s.str());
+		label->set_text("Solution ran successfully:");
 		sw->hide();
 	}
 
@@ -923,20 +932,23 @@ Window::IdleUpdate()
 
 	{
 		stringstream s;
-		s << d_solutionId;
+		s << d_solutionId << "/" << static_cast<int>(Get<Gtk::Adjustment>("adjustment_solution")->get_upper());
 
 		Get<Gtk::Label>("label_solution_solution")->set_text(s.str());
 	}
 
 	{
 		stringstream s;
-		s << d_iterationId;
+		s << d_iterationId << "/" << static_cast<int>(Get<Gtk::Adjustment>("adjustment_iteration")->get_upper());
 
 		Get<Gtk::Label>("label_solution_iteration")->set_text(s.str());
 	}
 
 	Glib::RefPtr<Gtk::ListStore> store_solutions = Get<Gtk::ListStore>("list_store_solutions");
 	store_solutions->clear();
+
+	Glib::RefPtr<Gtk::ListStore> store_data = Get<Gtk::ListStore>("list_store_data");
+	store_data->clear();
 
 	Glib::RefPtr<Gtk::ListStore> store_fitness = Get<Gtk::ListStore>("list_store_solution_fitness");
 	store_fitness->clear();
@@ -954,9 +966,18 @@ Window::IdleUpdate()
 		colnames << ", parameter_values.`" << cols[i] << "`";
 	}
 
+	vector<string> datacols = Utils::DataColumns(d_database);
+
+	for (size_t i = 0; i < datacols.size(); ++i)
+	{
+		colnames << ", data.`" << datacols[i] << "`";
+	}
+
 	sqlite::Row row = d_database() << "SELECT solution.`fitness` " << colnames.str() << " FROM solution "
 	                               << "LEFT JOIN parameter_values ON "
 	                               << "(parameter_values.`iteration` = solution.`iteration` AND parameter_values.`index` = solution.`index`) "
+	                               << "LEFT JOIN data ON "
+	                               << "(data.`iteration` = solution.`iteration` AND data.`index` = solution.`index`) "
 	                               << "WHERE solution.`iteration` = " << d_iterationId << " AND "
 	                               << "solution.`index` = " << d_solutionId
 	                               << sqlite::SQLite::Query::End();
@@ -972,6 +993,17 @@ Window::IdleUpdate()
 
 		string name = cols[i].substr(3);
 		string value = row.Get<string>(i + 1);
+
+		r.set_value(0, name);
+		r.set_value(1, value);
+	}
+
+	for (size_t i = 0; i < datacols.size(); ++i)
+	{
+		Gtk::TreeRow r = *(store_data->append());
+
+		string name = datacols[i].substr(3);
+		string value = row.Get<string>(cols.size() + i + 1);
 
 		r.set_value(0, name);
 		r.set_value(1, value);

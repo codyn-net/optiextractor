@@ -72,3 +72,26 @@ Utils::ActiveParameters(sqlite::SQLite database, size_t iteration, size_t soluti
 
 	return ret;
 }
+
+vector<string>
+Utils::DataColumns(sqlite::SQLite database)
+{
+	sqlite::Row names = database("PRAGMA table_info(`data`)");
+
+	vector<string> ret;
+
+	while (names && !names.Done())
+	{
+		string name = names.Get<string>(1);
+		names.Next();
+
+		if (!String(name).StartsWith("_d_") || String(name).StartsWith("_d_velocity_"))
+		{
+			continue;
+		}
+
+		ret.push_back(name);
+	}
+
+	return ret;
+}
