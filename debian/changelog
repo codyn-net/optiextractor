@@ -1,3 +1,12 @@
+optiextractor (2.13-1) UNRELEASED; urgency=low
+
+  * New upstream release
+  * Protect against null strings bug fix
+  * Interface improvements
+  * Run best solution by default with --run
+
+ -- Jesse van den Kieboom <jvanden@grijpc10.epfl.ch>  Thu, 28 Apr 2011 10:48:18 +0200
+
 optiextractor (2.12-1) UNRELEASED; urgency=low
 
   * New upstream release
