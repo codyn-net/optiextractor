@@ -16,7 +16,8 @@ Window::Window()
 	d_dialog(0),
 	d_openDialog(0),
 	d_logFilled(false),
-	d_solutionFilled(false)
+	d_solutionFilled(false),
+	d_plotter(0)
 {
 	d_runner.OnState.Add(*this, &Window::RunnerState);
 	d_runner.OnResponse.Add(*this, &Window::RunnerResponse);
@@ -508,10 +509,14 @@ Window::InitializeUI()
 	Get<Gtk::Widget>("vbox_log")->signal_map().connect(sigc::mem_fun(*this, &Window::LogMapped));
 	Get<Gtk::Widget>("vbox_solution")->signal_map().connect(sigc::mem_fun(*this, &Window::SolutionMapped));
 
+	Get<Gtk::Widget>("vbox_plot")->signal_map().connect(sigc::mem_fun(*this, &Window::PlotMapped));
+	Get<Gtk::Widget>("image_plot")->signal_size_allocate().connect(sigc::mem_fun(*this, &Window::ImagePlotSizeAllocate));
+
 	d_buttons.push_back(Get<Gtk::RadioButton>("radio_button_summary"));
 	d_buttons.push_back(Get<Gtk::RadioButton>("radio_button_parameters"));
 	d_buttons.push_back(Get<Gtk::RadioButton>("radio_button_solution"));
 	d_buttons.push_back(Get<Gtk::RadioButton>("radio_button_log"));
+	d_buttons.push_back(Get<Gtk::RadioButton>("radio_button_plot"));
 
 	Gtk::RadioButtonGroup group;
 
@@ -537,6 +542,76 @@ Window::LogMapped()
 
 	d_logFilled = true;
 	FillLog();
+}
+
+void
+Window::PlotterUpdated()
+{
+	string filename = d_plotter->Filename();
+	Get<Gtk::Image>("image_plot")->set(filename);
+}
+
+void
+Window::UpdatePlotterSize()
+{
+	if (!d_plotter)
+	{
+		return;
+	}
+
+	Gtk::Allocation alloc = Get<Gtk::Image>("image_plot")->get_allocation();
+	d_plotter->Resize((size_t)alloc.get_width(), (size_t)alloc.get_height());
+}
+
+void
+Window::OnBusy(bool busy)
+{
+	Glib::RefPtr<Gtk::Widget> widget = Get<Gtk::Widget>("image_plot");
+
+	if (busy)
+	{
+		widget->get_window()->set_cursor(Gdk::Cursor(Gdk::WATCH));
+	}
+	else
+	{
+		widget->get_window()->set_cursor();
+	}
+}
+
+void
+Window::OnFieldsChanged()
+{
+	Glib::RefPtr<Gtk::ListStore> store = Get<Gtk::ListStore>("list_store_plot_fitness");
+	vector<Plotter::Field> const &fields = d_plotter->Fields();
+	vector<Plotter::Field>::const_iterator iter;
+
+	for (iter = fields.begin(); iter != fields.end(); ++iter)
+	{
+		Plotter::Field const field = *iter;
+
+		Gtk::TreeRow row = *(store->append());
+
+		row.set_value(0, field.Name());
+		row.set_value(1, field.FieldName());
+		row.set_value(2, "#" + field.Color());
+	}
+}
+
+void
+Window::PlotMapped()
+{
+	if (!d_plotter)
+	{
+		d_plotter = new Plotter(d_database);
+
+		d_plotter->Updated().Add(*this, &Window::PlotterUpdated);
+		d_plotter->Busy().Add(*this, &Window::OnBusy);
+		d_plotter->FieldsChanged().Add(*this, &Window::OnFieldsChanged);
+
+		d_plotter->Scan();
+
+		UpdatePlotterSize();
+	}
 }
 
 void
@@ -1114,4 +1189,10 @@ Window::SwitchPageToggled()
 			break;
 		}
 	}
+}
+
+void
+Window::ImagePlotSizeAllocate(Gtk::Allocation &alloc)
+{
+	UpdatePlotterSize();
 }

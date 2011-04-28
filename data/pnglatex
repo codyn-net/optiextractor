@@ -1,0 +1,21 @@
+#!/bin/bash
+
+thedir=$(dirname "$1")
+pdflatex -interaction nonstopmode -halt-on-error -output-directory "$thedir" "$1"
+
+pdffile="${1%.*}.pdf"
+pngfile="${1%.*}.png"
+
+if ! [ $? ] && [ -f "$pdffile" ]; then
+	exit 1
+fi
+
+pdfcrop --margins 5 "$pdffile" "$pdffile.out"
+
+if [ $? ] && [ -f "$pdffile.out" ]; then
+	mv "$pdffile.out" "$pdffile"
+fi
+
+convert -density 600 -resize ${2}x${3} "$pdffile" "$pngfile"
+
+rm "$pdffile"

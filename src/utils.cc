@@ -51,6 +51,12 @@ Utils::FilterActive(sqlite::SQLite database, size_t iteration, size_t solution, 
 vector<string>
 Utils::ActiveParameters(sqlite::SQLite database, size_t iteration, size_t solution)
 {
+	return Utils::FilterActive(database, iteration, solution, ParameterColumns(database));
+}
+
+vector<string>
+Utils::ParameterColumns(sqlite::SQLite database)
+{
 	sqlite::Row names = database("PRAGMA table_info(`parameter_values`)");
 
 	vector<string> ret;
@@ -68,8 +74,6 @@ Utils::ActiveParameters(sqlite::SQLite database, size_t iteration, size_t soluti
 		ret.push_back(name);
 	}
 
-	ret = Utils::FilterActive(database, iteration, solution, ret);
-
 	return ret;
 }
 
@@ -86,6 +90,29 @@ Utils::DataColumns(sqlite::SQLite database)
 		names.Next();
 
 		if (!String(name).StartsWith("_d_") || String(name).StartsWith("_d_velocity_"))
+		{
+			continue;
+		}
+
+		ret.push_back(name);
+	}
+
+	return ret;
+}
+
+vector<string>
+Utils::FitnessColumns(sqlite::SQLite database)
+{
+	sqlite::Row names = database("PRAGMA table_info(`fitness`)");
+
+	vector<string> ret;
+
+	while (names && !names.Done())
+	{
+		string name = names.Get<string>(1);
+		names.Next();
+
+		if (!String(name).StartsWith("_f_"))
 		{
 			continue;
 		}

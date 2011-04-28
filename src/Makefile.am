@@ -21,6 +21,7 @@ optiextractor_SOURCES = \
 	runner.cc \
 	window.cc \
 	dispatcher.cc \
+	plotter.cc \
 	utils.cc
 
 noinst_HEADERS = \
@@ -29,6 +30,7 @@ noinst_HEADERS = \
 	runner.hh \
 	window.hh \
 	dispatcher.hh \
+	plotter.hh \
 	utils.hh
 
 EXTRA_DIST = $(noinst_HEADERS)

@@ -1,0 +1,22 @@
+\documentclass[16pt]{article}
+\usepackage{pgfplots}
+
+\usepackage[active,tightpage]{preview}
+\PreviewEnvironment{tikzpicture}
+\setlength\PreviewBorder{5pt}
+
+%{PREAMBLE}
+
+\pgfplotsset{every axis plot/.append style={thick}}
+
+\begin{document}
+
+\begin{tikzpicture}
+  \begin{axis}[xlabel=Iteration,ylabel=Fitness,width=%{WIDTH},height=%{HEIGHT},/pgf/number format/set thousands
+separator={}]
+    %{PLOTS}
+  \end{axis}
+\end{tikzpicture}
+\end{document}
+
+% vi:ex:ts=2:et

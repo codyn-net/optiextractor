@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "plotter.hh"
 #include "runner.hh"
 
 namespace optiextractor
@@ -18,15 +19,16 @@ namespace optiextractor
 		Gtk::Window *d_window;
 		Gtk::MessageDialog *d_dialog;
 		std::map<std::string, std::string> d_parameterMap;
-	
+
 		Glib::RefPtr<Gtk::UIManager> d_uiManager;
 		Glib::RefPtr<Gtk::ActionGroup> d_actionGroup;
 	
 		Gtk::FileChooserDialog *d_openDialog;
-	
+
 		Runner d_runner;
 		optimization::messages::task::Response d_lastResponse;
 		std::string d_overrideDispatcher;
+		std::string d_plotDataFile;
 
 		bool d_scanned;
 		bool d_logFilled;
@@ -40,6 +42,8 @@ namespace optiextractor
 
 		std::vector<Glib::RefPtr<Gtk::RadioButton> > d_buttons;
 		std::vector<sigc::connection> d_buttonSignals;
+
+		Plotter *d_plotter;
 
 		public:
 			/* Constructor/destructor */
@@ -84,6 +88,8 @@ namespace optiextractor
 			void RunSolution();
 			void HandleRunnerStarted();
 			void HandleRunnerStopped();
+
+			void PlotterUpdated();
 		
 			std::string ResolveDispatcher(std::string const &dispatcher);
 		
@@ -107,6 +113,7 @@ namespace optiextractor
 
 			void LogMapped();
 			void SolutionMapped();
+			void PlotMapped();
 
 			void UpdateIds();
 
@@ -116,6 +123,11 @@ namespace optiextractor
 			bool IdleUpdate();
 
 			void SwitchPageToggled();
+			void UpdatePlotterSize();
+
+			void ImagePlotSizeAllocate(Gtk::Allocation &alloc);
+			void OnBusy(bool busy);
+			void OnFieldsChanged();
 	};
 
 	template <typename T>
