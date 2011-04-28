@@ -124,13 +124,16 @@ Application::RunExporter(string const &filename, string const &outfile)
 void
 Application::RunDispatcher(int &argc, char **&argv)
 {
-	if (d_iteration < 0)
+	// if both are -1 (default) we take the best solution of the set
+	bool maxIsSelected = (d_iteration == -1 && d_solution == -1);
+
+	if (!maxIsSelected && d_iteration < 0)
 	{
 		cerr << "Please specify an iteration" << endl;
 		return;
 	}
 
-	if (d_solution < 0)
+	if (!maxIsSelected && d_solution < 0)
 	{
 		cerr << "Please specify a solution" << endl;
 		return;
@@ -154,6 +157,29 @@ Application::RunDispatcher(int &argc, char **&argv)
 
 	d_runner.OnState.Add(*this, &Application::RunnerState);
 	d_runner.OnResponse.Add(*this, &Application::RunnerResponse);
+
+	// select the correct iteration and index
+	if (maxIsSelected)
+	{
+		sqlite::Row job = database("SELECT `index`, iteration FROM solution ORDER BY fitness "
+		                           "DESC LIMIT 1");
+
+		if (job.Done())
+		{
+			cerr << "There is no solution in the database, "
+			     << "it is not possible to run the best one."
+			     << endl;
+
+			return;
+		}
+
+		d_solution = job.Get<int>(0);
+		d_iteration = job.Get<int>(1);
+
+		cout << "Running solution " << d_solution
+		     << " of iteration " << d_iteration
+		     << "." << endl;
+	}
 
 	d_runner.Run(database, d_iteration, d_solution);
 

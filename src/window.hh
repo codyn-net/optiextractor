@@ -5,6 +5,7 @@
 #include <jessevdk/db/db.hh>
 #include <map>
 #include <string>
+#include <vector>
 
 #include "runner.hh"
 
@@ -33,6 +34,12 @@ namespace optiextractor
 
 		size_t d_solutionId;
 		size_t d_iterationId;
+
+		sigc::connection d_solutionChangedHandler;
+		sigc::connection d_iterationChangedHandler;
+
+		std::vector<Glib::RefPtr<Gtk::RadioButton> > d_buttons;
+		std::vector<sigc::connection> d_buttonSignals;
 
 		public:
 			/* Constructor/destructor */
@@ -65,7 +72,11 @@ namespace optiextractor
 		
 			void DestroyDialog(int response);
 			void SolutionChanged();
+
 			void ExecuteClicked();
+
+			void SolutionBestToggled();
+			void IterationBestToggled();
 		
 			void RunnerState(bool running);
 			void RunnerResponse(optimization::messages::task::Response const &response);
@@ -98,6 +109,13 @@ namespace optiextractor
 			void SolutionMapped();
 
 			void UpdateIds();
+
+			bool SolutionScrollEvent(GdkEventScroll *event);
+			bool IterationScrollEvent(GdkEventScroll *event);
+
+			bool IdleUpdate();
+
+			void SwitchPageToggled();
 	};
 
 	template <typename T>

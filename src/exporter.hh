@@ -58,6 +58,8 @@ namespace optiextractor
 			void Begin(std::string const &name = "");
 			void End();
 
+			std::string SafelyGetNullString(jessevdk::db::sqlite::Row &row, size_t idx) const;
+
 			template <typename T>
 			void Write(std::string const &name, T const &t);
 

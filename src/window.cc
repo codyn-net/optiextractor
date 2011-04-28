@@ -34,12 +34,16 @@ Window::Clear()
 	Get<Gtk::Range>("hscale_solution")->set_value(0);
 	Get<Gtk::Range>("hscale_iteration")->set_value(0);
 
+	Get<Gtk::CheckButton>("check_button_solution_best")->set_active(true);
+	Get<Gtk::CheckButton>("check_button_iteration_best")->set_active(true);
+
 	Get<Gtk::ListStore>("list_store_settings")->clear();
 	Get<Gtk::ListStore>("list_store_dispatcher")->clear();
 	Get<Gtk::ListStore>("list_store_fitness")->clear();
 	Get<Gtk::ListStore>("list_store_parameters")->clear();
 	Get<Gtk::ListStore>("list_store_boundaries")->clear();
 	Get<Gtk::ListStore>("list_store_solutions")->clear();
+	Get<Gtk::ListStore>("list_store_data")->clear();
 	Get<Gtk::ListStore>("list_store_solution_fitness")->clear();
 	Get<Gtk::ListStore>("list_store_override")->clear();
 	Get<Gtk::ListStore>("list_store_log")->clear();
@@ -52,6 +56,7 @@ Window::Clear()
 	Get<Gtk::Label>("label_solution_solution")->set_text("");
 
 	Get<Gtk::Notebook>("notebook")->set_current_page(0);
+	d_buttons[0]->set_active(true);
 
 	d_runner.Cancel();
 
@@ -74,6 +79,7 @@ Window::DestroyDialog(int response)
 	if (d_dialog)
 	{
 		delete d_dialog;
+		d_dialog = 0;
 	}
 }
 
@@ -192,8 +198,8 @@ Window::Fill()
 	size_t maxiteration = d_database("SELECT MAX(`iteration`) FROM `solution`").Get<size_t>(0);
 	size_t maxindex = d_database("SELECT MAX(`index`) FROM `solution`").Get<size_t>(0);
 
-	Get<Gtk::Range>("hscale_iteration")->set_range(0, maxiteration + 1);
-	Get<Gtk::Range>("hscale_solution")->set_range(0, maxindex + 1);
+	Get<Gtk::Adjustment>("adjustment_iteration")->set_upper(maxiteration);
+	Get<Gtk::Adjustment>("adjustment_solution")->set_upper(maxindex);
 }
 
 void
@@ -342,14 +348,18 @@ Window::HandleRunnerStopped()
 	d_builder->get_widget("dialog_response", dialog);
 
 	Glib::RefPtr<Gtk::Label> label = Get<Gtk::Label>("label_response_info");
+	Glib::RefPtr<Gtk::Image> image = Get<Gtk::Image>("image_response_icon");
 	Glib::RefPtr<Gtk::TextView> tv = Get<Gtk::TextView>("text_view_response_info");
 	Glib::RefPtr<Gtk::ScrolledWindow> sw = Get<Gtk::ScrolledWindow>("scrolled_window_response_info");
+	Glib::RefPtr<Gtk::ScrolledWindow> swf = Get<Gtk::ScrolledWindow>("scrolled_window_response_fitness");
 
 	dialog->set_transient_for(*d_window);
 
 	if (d_lastResponse.status() == Response::Failed)
 	{
 		string message;
+
+		image->set(Gtk::Stock::DIALOG_ERROR, Gtk::ICON_SIZE_DIALOG);
 
 		switch (d_lastResponse.failure().type())
 		{
@@ -392,25 +402,29 @@ Window::HandleRunnerStopped()
 		{
 			sw->hide();
 		}
+
+		swf->hide();
 	}
 	else
 	{
-		stringstream s;
-		s << "Solution ran successfully: ";
+		Glib::RefPtr<Gtk::ListStore> store = Get<Gtk::ListStore>("list_store_response_fitness");
+		image->set(Gtk::Stock::DIALOG_INFO, Gtk::ICON_SIZE_DIALOG);
 
 		for (int i = 0; i < d_lastResponse.fitness_size(); ++i)
 		{
 			Response::Fitness const &fitness = d_lastResponse.fitness(i);
 
-			if (i != 0)
-			{
-				s << ", ";
-			}
+			Gtk::TreeIter iter = store->append();
+			Gtk::TreeRow row = *iter;
+			stringstream val;
 
-			s << fitness.name() << " = " << fitness.value() << endl;
+			val << fitness.value();
+
+			row.set_value(0, fitness.name());
+			row.set_value(1, val.str());
 		}
 
-		label->set_text(s.str());
+		label->set_text("Solution ran successfully:");
 		sw->hide();
 	}
 
@@ -473,11 +487,14 @@ Window::InitializeUI()
 	Gtk::Widget *menu = d_uiManager->get_widget("/ui/MenuBar");
 	Get<Gtk::VBox>("vbox_main")->pack_start(*menu, Gtk::PACK_SHRINK);
 
-	Get<Gtk::Range>("hscale_solution")->set_increments(1, 10);
-	Get<Gtk::Range>("hscale_solution")->signal_value_changed().connect(sigc::mem_fun(*this, &Window::SolutionChanged));
+	d_solutionChangedHandler = Get<Gtk::Range>("hscale_solution")->signal_value_changed().connect(sigc::mem_fun(*this, &Window::SolutionChanged));
+	Get<Gtk::Range>("hscale_solution")->signal_scroll_event().connect(sigc::mem_fun(*this, &Window::SolutionScrollEvent), false);
 
-	Get<Gtk::Range>("hscale_iteration")->set_increments(1, 10);
-	Get<Gtk::Range>("hscale_iteration")->signal_value_changed().connect(sigc::mem_fun(*this, &Window::SolutionChanged));
+	d_iterationChangedHandler = Get<Gtk::Range>("hscale_iteration")->signal_value_changed().connect(sigc::mem_fun(*this, &Window::SolutionChanged));
+	Get<Gtk::Range>("hscale_iteration")->signal_scroll_event().connect(sigc::mem_fun(*this, &Window::IterationScrollEvent), false);
+
+	Get<Gtk::CheckButton>("check_button_iteration_best")->signal_toggled().connect(sigc::mem_fun(*this, &Window::IterationBestToggled));
+	Get<Gtk::CheckButton>("check_button_solution_best")->signal_toggled().connect(sigc::mem_fun(*this, &Window::SolutionBestToggled));
 
 	Get<Gtk::Button>("button_execute")->signal_clicked().connect(sigc::mem_fun(*this, &Window::ExecuteClicked));
 
@@ -490,6 +507,22 @@ Window::InitializeUI()
 
 	Get<Gtk::Widget>("vbox_log")->signal_map().connect(sigc::mem_fun(*this, &Window::LogMapped));
 	Get<Gtk::Widget>("vbox_solution")->signal_map().connect(sigc::mem_fun(*this, &Window::SolutionMapped));
+
+	d_buttons.push_back(Get<Gtk::RadioButton>("radio_button_summary"));
+	d_buttons.push_back(Get<Gtk::RadioButton>("radio_button_parameters"));
+	d_buttons.push_back(Get<Gtk::RadioButton>("radio_button_solution"));
+	d_buttons.push_back(Get<Gtk::RadioButton>("radio_button_log"));
+
+	Gtk::RadioButtonGroup group;
+
+	for (vector<Glib::RefPtr<Gtk::RadioButton> >::iterator iter = d_buttons.begin(); iter != d_buttons.end(); ++iter)
+	{
+		if (*iter)
+		{
+			(*iter)->set_group(group);
+			(*iter)->signal_toggled().connect(sigc::mem_fun(*this, &Window::SwitchPageToggled));
+		}
+	}
 
 	Clear();
 }
@@ -517,7 +550,7 @@ Window::SolutionMapped()
 	d_solutionFilled = true;
 
 	FillOverrides();
-	SolutionChanged();
+	IdleUpdate();
 }
 
 void
@@ -827,7 +860,13 @@ Window::UpdateIds()
 	size_t iteration = Get<Gtk::Range>("hscale_iteration")->get_value();
 	size_t solution = Get<Gtk::Range>("hscale_solution")->get_value();
 
-	if (solution == 0 && iteration != 0)
+	bool iterationBest = Get<Gtk::CheckButton>("check_button_iteration_best")->get_active();
+	bool solutionBest = Get<Gtk::CheckButton>("check_button_solution_best")->get_active();
+
+	d_solutionId = solution;
+	d_iterationId = iteration;
+
+	if (solutionBest && !iterationBest)
 	{
 		sqlite::Row res = d_database() << "SELECT `index` FROM solution WHERE `iteration` = "
 		                               << iteration << " ORDER BY `fitness` DESC LIMIT 1"
@@ -839,9 +878,12 @@ Window::UpdateIds()
 		}
 
 		d_solutionId = res.Get<int>(0);
-		d_iterationId = iteration - 1;
+
+		d_solutionChangedHandler.block();
+		Get<Gtk::Range>("hscale_solution")->set_value(d_solutionId);
+		d_solutionChangedHandler.unblock();
 	}
-	else if (iteration == 0 && solution != 0)
+	else if (iterationBest && !solutionBest)
 	{
 		sqlite::Row res = d_database() << "SELECT `iteration` FROM solution WHERE `index` = "
 		                               << solution << " ORDER BY `fitness` DESC LIMIT 1"
@@ -853,9 +895,12 @@ Window::UpdateIds()
 		}
 
 		d_iterationId = res.Get<int>(0);
-		d_solutionId = solution - 1;
+
+		d_iterationChangedHandler.block();
+		Get<Gtk::Range>("hscale_iteration")->set_value(d_iterationId);
+		d_iterationChangedHandler.unblock();
 	}
-	else if (iteration == 0 && solution == 0)
+	else if (iterationBest && solutionBest)
 	{
 		sqlite::Row res = d_database() << "SELECT `index`, `iteration` FROM solution "
 		                               << "ORDER BY `fitness` DESC LIMIT 1"
@@ -868,35 +913,50 @@ Window::UpdateIds()
 
 		d_solutionId = res.Get<int>(0);
 		d_iterationId = res.Get<int>(1);
-	}
-	else
-	{
-		d_solutionId = solution - 1;
-		d_iterationId = iteration - 1;
+
+		d_solutionChangedHandler.block();
+		d_iterationChangedHandler.block();
+
+		Get<Gtk::Range>("hscale_solution")->set_value(d_solutionId);
+		Get<Gtk::Range>("hscale_iteration")->set_value(d_iterationId);
+
+		d_solutionChangedHandler.unblock();
+		d_iterationChangedHandler.unblock();
 	}
 }
 
-void
-Window::SolutionChanged()
+bool
+Window::IdleUpdate()
 {
-	Get<Gtk::Label>("label_solution_iteration")->set_text("");
-	Get<Gtk::Label>("label_solution_solution")->set_text("");
+	UpdateIds();
+
+	{
+		stringstream s;
+		s << d_solutionId << "/" << static_cast<int>(Get<Gtk::Adjustment>("adjustment_solution")->get_upper());
+
+		Get<Gtk::Label>("label_solution_solution")->set_text(s.str());
+	}
+
+	{
+		stringstream s;
+		s << d_iterationId << "/" << static_cast<int>(Get<Gtk::Adjustment>("adjustment_iteration")->get_upper());
+
+		Get<Gtk::Label>("label_solution_iteration")->set_text(s.str());
+	}
 
 	Glib::RefPtr<Gtk::ListStore> store_solutions = Get<Gtk::ListStore>("list_store_solutions");
 	store_solutions->clear();
 
+	Glib::RefPtr<Gtk::ListStore> store_data = Get<Gtk::ListStore>("list_store_data");
+	store_data->clear();
+
 	Glib::RefPtr<Gtk::ListStore> store_fitness = Get<Gtk::ListStore>("list_store_solution_fitness");
 	store_fitness->clear();
 
-	d_solutionId = 0;
-	d_iterationId = 0;
-
 	if (!Get<Gtk::Notebook>("notebook")->sensitive())
 	{
-		return;
+		return false;
 	}
-
-	UpdateIds();
 
 	vector<string> cols = Utils::ActiveParameters(d_database, d_iterationId, d_solutionId);
 	stringstream colnames;
@@ -906,30 +966,25 @@ Window::SolutionChanged()
 		colnames << ", parameter_values.`" << cols[i] << "`";
 	}
 
+	vector<string> datacols = Utils::DataColumns(d_database);
+
+	for (size_t i = 0; i < datacols.size(); ++i)
+	{
+		colnames << ", data.`" << datacols[i] << "`";
+	}
+
 	sqlite::Row row = d_database() << "SELECT solution.`fitness` " << colnames.str() << " FROM solution "
 	                               << "LEFT JOIN parameter_values ON "
 	                               << "(parameter_values.`iteration` = solution.`iteration` AND parameter_values.`index` = solution.`index`) "
+	                               << "LEFT JOIN data ON "
+	                               << "(data.`iteration` = solution.`iteration` AND data.`index` = solution.`index`) "
 	                               << "WHERE solution.`iteration` = " << d_iterationId << " AND "
 	                               << "solution.`index` = " << d_solutionId
 	                               << sqlite::SQLite::Query::End();
 
 	if (row.Done())
 	{
-		return;
-	}
-
-	{
-		stringstream s;
-		s << (d_iterationId + 1);
-
-		Get<Gtk::Label>("label_solution_iteration")->set_text(s.str());
-	}
-
-	{
-		stringstream s;
-		s << (d_solutionId + 1);
-
-		Get<Gtk::Label>("label_solution_solution")->set_text(s.str());
+		return false;
 	}
 
 	for (size_t i = 0; i < cols.size(); ++i)
@@ -938,6 +993,17 @@ Window::SolutionChanged()
 
 		string name = cols[i].substr(3);
 		string value = row.Get<string>(i + 1);
+
+		r.set_value(0, name);
+		r.set_value(1, value);
+	}
+
+	for (size_t i = 0; i < datacols.size(); ++i)
+	{
+		Gtk::TreeRow r = *(store_data->append());
+
+		string name = datacols[i].substr(3);
+		string value = row.Get<string>(cols.size() + i + 1);
 
 		r.set_value(0, name);
 		r.set_value(1, value);
@@ -983,10 +1049,69 @@ Window::SolutionChanged()
 			names.Next();
 		}
 	}
+
+	return false;
+}
+
+void
+Window::SolutionChanged()
+{
+	Glib::signal_idle().connect(sigc::mem_fun(*this, &Window::IdleUpdate));
 }
 
 Gtk::Window &
 Window::GtkWindow()
 {
 	return *d_window;
+}
+
+void
+Window::SolutionBestToggled()
+{
+	Get<Gtk::Widget>("hscale_solution")->set_sensitive(!Get<Gtk::CheckButton>("check_button_solution_best")->get_active());
+	IdleUpdate();
+}
+
+void
+Window::IterationBestToggled()
+{
+	Get<Gtk::Widget>("hscale_iteration")->set_sensitive(!Get<Gtk::CheckButton>("check_button_iteration_best")->get_active());
+	IdleUpdate();
+}
+
+bool
+Window::SolutionScrollEvent(GdkEventScroll *event)
+{
+	double val;
+
+	val = event->direction == GDK_SCROLL_UP ? 1 : -1;
+
+	Get<Gtk::Range>("hscale_solution")->set_value(Get<Gtk::Range>("hscale_solution")->get_value() + val);
+
+	return true;
+}
+
+bool
+Window::IterationScrollEvent(GdkEventScroll *event)
+{
+	double val;
+
+	val = event->direction == GDK_SCROLL_UP ? 1 : -1;
+
+	Get<Gtk::Range>("hscale_iteration")->set_value(Get<Gtk::Range>("hscale_iteration")->get_value() + val);
+
+	return true;
+}
+
+void
+Window::SwitchPageToggled()
+{
+	for (size_t i = 0; i < d_buttons.size(); ++i)
+	{
+		if (d_buttons[i]->get_active())
+		{
+			Get<Gtk::Notebook>("notebook")->set_current_page(i);
+			break;
+		}
+	}
 }

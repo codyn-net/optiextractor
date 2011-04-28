@@ -18,7 +18,7 @@ Exporter::Exporter(std::string const &filename, SQLite &database)
 
 	if (row)
 	{
-		d_isSystematic = Glib::ustring(row.Get<string>(0)).lowercase() == "systematic";
+		d_isSystematic = Glib::ustring(SafelyGetNullString(row, 0)).lowercase() == "systematic";
 	}
 }
 
@@ -102,7 +102,7 @@ Exporter::ExportBoundaries()
 	{
 		while (row && !row.Done())
 		{
-			Begin(row.Get<string>(0));
+			Begin(SafelyGetNullString(row, 0));
 			{
 				Write("min", row.Get<double>(1));
 				Write("max", row.Get<double>(2));
@@ -126,7 +126,7 @@ Exporter::ExportParameters()
 	{
 		while (row && !row.Done())
 		{
-			Write(row.Get<string>(0), row.Get<string>(1));
+			Write(SafelyGetNullString(row, 0), SafelyGetNullString(row, 1));
 			row.Next();
 		}
 	}
@@ -142,7 +142,7 @@ Exporter::ExportDispatcherSettings()
 	{
 		while (row && !row.Done())
 		{
-			Write(row.Get<string>(0), row.Get<string>(1));
+			Write(SafelyGetNullString(row, 0), SafelyGetNullString(row, 1));
 			row.Next();
 		}
 	}
@@ -158,17 +158,9 @@ Exporter::ExportFitnessSettings()
 	{
 		while (row && !row.Done())
 		{
-			string val;
+			string val = SafelyGetNullString(row, 1);
 
-			try
-			{
-				val = row.Get<string>(1);
-			}
-			catch (...)
-			{
-			}
-
-			Write(row.Get<string>(0), val);
+			Write(SafelyGetNullString(row, 0), val);
 			row.Next();
 		}
 	}
@@ -184,13 +176,26 @@ Exporter::ExportJob()
 	{
 		Begin("job");
 		{
-			Write("name", row.Get<string>(0));
-			Write("optimizer", row.Get<string>(1));
-			Write("dispatcher", row.Get<string>(2));
+			Write("name", SafelyGetNullString(row, 0));
+			Write("optimizer", SafelyGetNullString(row, 1));
+			Write("dispatcher", SafelyGetNullString(row, 2));
 			Write("priority", row.Get<double>(3));
 			Write("timeout", row.Get<double>(4));
 		}
 		End();
+	}
+}
+
+string
+Exporter::SafelyGetNullString(Row &row, size_t idx) const
+{
+	try
+	{
+		return row.Get<string>(idx);
+	}
+	catch (...)
+	{
+		return "";
 	}
 }
 
@@ -203,7 +208,7 @@ Exporter::ExportOptimizerSettings()
 	{
 		while (row && !row.Done())
 		{
-			Write(row.Get<string>(0), row.Get<string>(1));
+			Write(SafelyGetNullString(row, 0), SafelyGetNullString(row, 1));
 			row.Next();
 		}
 	}
@@ -252,7 +257,7 @@ Exporter::WriteNames(string const &name, jessevdk::db::sqlite::Row row, string c
 
 	while (row && !row.Done())
 	{
-		String name = row.Get<string>(1);
+		String name = SafelyGetNullString(row, 1);
 
 		if (name.StartsWith(prefix))
 		{
@@ -485,15 +490,7 @@ Exporter::ExportData()
 	{
 		for (size_t i = 2; i < row.Length(); ++i)
 		{
-			string s;
-
-			try
-			{
-				s = row.Get<string>(i);
-			}
-			catch (...)
-			{
-			}
+			string s = SafelyGetNullString(row, i);
 
 			int ddims[2] = {1, s.size()};
 
