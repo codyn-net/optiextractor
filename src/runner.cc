@@ -148,7 +148,7 @@ Runner::FillParameters(sqlite::SQLite database, size_t iteration, size_t solutio
 		string name = cols[i].substr(3);
 
 		parameter->set_name(name);
-		parameter->set_value(String(row.Get<string>(i)));
+		parameter->set_value(row.Get<double>(i));
 
 		sqlite::Row row = database() << "SELECT `min`, `max` FROM boundaries WHERE "
 		                             << "boundaries.name = (SELECT parameters.boundary FROM parameters "

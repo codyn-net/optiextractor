@@ -3,6 +3,7 @@
 #include "utils.hh"
 
 #include <jessevdk/os/os.hh>
+#include <iomanip>
 
 using namespace std;
 using namespace jessevdk::db;
@@ -992,10 +993,12 @@ Window::IdleUpdate()
 		Gtk::TreeRow r = *(store_solutions->append());
 
 		string name = cols[i].substr(3);
-		string value = row.Get<string>(i + 1);
+		stringstream value;
+
+		value << setprecision(20) << row.Get<double>(i + 1);
 
 		r.set_value(0, name);
-		r.set_value(1, value);
+		r.set_value(1, value.str());
 	}
 
 	for (size_t i = 0; i < datacols.size(); ++i)
