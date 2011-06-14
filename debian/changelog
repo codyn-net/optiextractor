@@ -1,3 +1,10 @@
+optiextractor (2.14-1) UNRELEASED; urgency=low
+
+  * New upstream release
+  * Fix bug in database parameter value conversion (loosing last significant decimals)
+
+ -- Jesse van den Kieboom <jvanden@grijpc10.epfl.ch>  Tue, 14 Jun 2011 13:39:07 +0200
+
 optiextractor (2.13-1) UNRELEASED; urgency=low
 
   * New upstream release
