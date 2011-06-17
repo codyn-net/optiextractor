@@ -129,13 +129,13 @@ Application::RunDispatcher(int &argc, char **&argv)
 
 	if (!maxIsSelected && d_iteration < 0)
 	{
-		cerr << "Please specify an iteration" << endl;
+		cerr << "Please specify an iteration (-i or --iteration)" << endl;
 		return;
 	}
 
 	if (!maxIsSelected && d_solution < 0)
 	{
-		cerr << "Please specify a solution" << endl;
+		cerr << "Please specify a solution (-s or --solution)" << endl;
 		return;
 	}
 
