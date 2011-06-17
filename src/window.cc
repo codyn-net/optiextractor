@@ -411,6 +411,8 @@ Window::HandleRunnerStopped()
 		Glib::RefPtr<Gtk::ListStore> store = Get<Gtk::ListStore>("list_store_response_fitness");
 		image->set(Gtk::Stock::DIALOG_INFO, Gtk::ICON_SIZE_DIALOG);
 
+		store->clear();
+
 		for (int i = 0; i < d_lastResponse.fitness_size(); ++i)
 		{
 			Response::Fitness const &fitness = d_lastResponse.fitness(i);
