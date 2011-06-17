@@ -97,6 +97,112 @@ Utils::DataColumns(sqlite::SQLite database)
 }
 
 bool
+Utils::IsStagePSO(sqlite::SQLite database)
+{
+	sqlite::Row res = database("PRAGMA table_info(stagepso_settings)");
+
+	return res && !res.Done();
+}
+
+bool
+Utils::FindStagePSOBest(sqlite::SQLite  database,
+                        int             iteration,
+                        int             solution,
+                        size_t         &iterationOut,
+                        size_t         &solutionOut)
+{
+	bool iterationBest = iteration < 0;
+	bool solutionBest = solution < 0;
+
+	if (solutionBest && !iterationBest)
+	{
+		sqlite::Row res =
+			database() << "SELECT "
+			                  "solution.`index` "
+			              "FROM "
+			                  "solution "
+			              "LEFT JOIN "
+			                  "data "
+			              "ON "
+			                  "(solution.iteration = data.iteration AND "
+			                  " solution.`index` = data.`index`) "
+			              "WHERE "
+			                  "solution.iteration = " << iteration << " "
+			           << "ORDER BY "
+			                  "data.`_d_StagePSO::stage` DESC, "
+			                  "solution.fitness DESC "
+			              "LIMIT 1"
+			           << sqlite::SQLite::Query::End();
+
+		if (!res || res.Done())
+		{
+			return false;
+		}
+
+		iterationOut = iteration;
+		solutionOut = res.Get<int>(0);
+	}
+	else if (iterationBest && !solutionBest)
+	{
+		sqlite::Row res =
+			database() << "SELECT "
+			                  "solution.iteration "
+			              "FROM "
+			                  "solution "
+			              "LEFT JOIN "
+			                  "data "
+			              "ON "
+			                  "(solution.iteration = data.iteration AND "
+			                  " solution.`index` = data.`index`) "
+			              "WHERE "
+			                  "solution.`index` = " << solution << " "
+			           << "ORDER BY "
+			                  "data.`_d_StagePSO::stage` DESC, "
+			                  "solution.fitness DESC "
+			              "LIMIT 1"
+			           << sqlite::SQLite::Query::End();
+
+		if (!res || res.Done())
+		{
+			return false;
+		}
+
+		iterationOut = res.Get<int>(0);
+		solutionOut = solution;
+	}
+	else if (iterationBest && solutionBest)
+	{
+		sqlite::Row res =
+			database() << "SELECT "
+			                  "data.iteration, "
+			                  "data.`index` "
+			              "FROM "
+			                  "data "
+			              "LEFT JOIN "
+			                  "fitness "
+			              "ON "
+			                  "(fitness.iteration = data.iteration AND "
+			                  " fitness.`index` = data.`index`) "
+			              "WHERE "
+			                  "data.`_d_StagePSO::stage` = (SELECT MAX(`_d_StagePSO::stage`) FROM data) "
+			              "ORDER BY "
+			                  "fitness.value DESC "
+			              "LIMIT 1"
+			           << sqlite::SQLite::Query::End();
+
+		if (!res || res.Done())
+		{
+			return false;
+		}
+
+		iterationOut = res.Get<int>(0);
+		solutionOut = res.Get<int>(1);
+	}
+
+	return true;
+}
+
+bool
 Utils::FindBest(sqlite::SQLite  database,
                 int             iteration,
                 int             solution,
