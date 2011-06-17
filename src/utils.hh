@@ -30,6 +30,16 @@ namespace optiextractor
 			             size_t                          iteration,
 			             size_t                          solution,
 			             std::vector<std::string> const &ret);
+
+			static bool
+			FindStagePSOBest(jessevdk::db::sqlite::SQLite  database,
+			                 int                           iteration,
+			                 int                           solution,
+			                 size_t                       &iterationOut,
+			                 size_t                       &solutionOut);
+
+			static bool
+			IsStagePSO(jessevdk::db::sqlite::SQLite database);
 	};
 }
 
