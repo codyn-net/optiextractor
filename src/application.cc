@@ -1,6 +1,7 @@
 #include "application.hh"
 #include "window.hh"
 #include "exporter.hh"
+#include "utils.hh"
 
 #include <jessevdk/os/os.hh>
 #include <jessevdk/db/db.hh>
@@ -161,10 +162,10 @@ Application::RunDispatcher(int &argc, char **&argv)
 	// select the correct iteration and index
 	if (maxIsSelected)
 	{
-		sqlite::Row job = database("SELECT `index`, iteration FROM solution ORDER BY fitness "
-		                           "DESC LIMIT 1");
+		size_t iteration;
+		size_t solution;
 
-		if (job.Done())
+		if (!Utils::FindBest(database, -1, -1, iteration, solution))
 		{
 			cerr << "There is no solution in the database, "
 			     << "it is not possible to run the best one."
@@ -173,8 +174,8 @@ Application::RunDispatcher(int &argc, char **&argv)
 			return;
 		}
 
-		d_solution = job.Get<int>(0);
-		d_iteration = job.Get<int>(1);
+		d_iteration = iteration;
+		d_solution = solution;
 
 		cout << "Running solution " << d_solution
 		     << " of iteration " << d_iteration

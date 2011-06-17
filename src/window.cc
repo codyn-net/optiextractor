@@ -867,63 +867,23 @@ Window::UpdateIds()
 	d_solutionId = solution;
 	d_iterationId = iteration;
 
-	if (solutionBest && !iterationBest)
+	if (!Utils::FindBest(d_database,
+	                     iterationBest ? -1 : iteration,
+	                     solutionBest ? -1 : solution,
+	                     d_iterationId,
+	                     d_solutionId))
 	{
-		sqlite::Row res = d_database() << "SELECT `index` FROM solution WHERE `iteration` = "
-		                               << iteration << " ORDER BY `fitness` DESC LIMIT 1"
-		                               << sqlite::SQLite::Query::End();
-
-		if (!res || res.Done())
-		{
-			return;
-		}
-
-		d_solutionId = res.Get<int>(0);
-
-		d_solutionChangedHandler.block();
-		Get<Gtk::Range>("hscale_solution")->set_value(d_solutionId);
-		d_solutionChangedHandler.unblock();
+		return;
 	}
-	else if (iterationBest && !solutionBest)
-	{
-		sqlite::Row res = d_database() << "SELECT `iteration` FROM solution WHERE `index` = "
-		                               << solution << " ORDER BY `fitness` DESC LIMIT 1"
-		                               << sqlite::SQLite::Query::End();
 
-		if (!res || res.Done())
-		{
-			return;
-		}
+	d_solutionChangedHandler.block();
+	d_iterationChangedHandler.block();
 
-		d_iterationId = res.Get<int>(0);
+	Get<Gtk::Range>("hscale_solution")->set_value(d_solutionId);
+	Get<Gtk::Range>("hscale_iteration")->set_value(d_iterationId);
 
-		d_iterationChangedHandler.block();
-		Get<Gtk::Range>("hscale_iteration")->set_value(d_iterationId);
-		d_iterationChangedHandler.unblock();
-	}
-	else if (iterationBest && solutionBest)
-	{
-		sqlite::Row res = d_database() << "SELECT `index`, `iteration` FROM solution "
-		                               << "ORDER BY `fitness` DESC LIMIT 1"
-		                               << sqlite::SQLite::Query::End();
-
-		if (!res || res.Done())
-		{
-			return;
-		}
-
-		d_solutionId = res.Get<int>(0);
-		d_iterationId = res.Get<int>(1);
-
-		d_solutionChangedHandler.block();
-		d_iterationChangedHandler.block();
-
-		Get<Gtk::Range>("hscale_solution")->set_value(d_solutionId);
-		Get<Gtk::Range>("hscale_iteration")->set_value(d_iterationId);
-
-		d_solutionChangedHandler.unblock();
-		d_iterationChangedHandler.unblock();
-	}
+	d_solutionChangedHandler.unblock();
+	d_iterationChangedHandler.unblock();
 }
 
 bool
