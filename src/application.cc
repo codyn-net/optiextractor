@@ -135,6 +135,9 @@ Application::RunExporter(string const &filename, string const &outfile)
 
 	Exporter exporter(outfile, database);
 
+	exporter.SetIgnoreData(d_ignoredata);
+	exporter.SetNumericData(d_numericdata);
+
 	cout << "[Exporting: " << outfile << "]" << endl;
 
 	cout << "\e[?25l";
@@ -444,6 +447,20 @@ Application::ParseArguments(int &argc, char **&argv)
 	exprtout.set_description("Export output file");
 
 	group.add_entry(exprtout, d_exportout);
+
+	// Don't export data
+	Glib::OptionEntry exprtigndata;
+	exprtigndata.set_long_name("ignore-data");
+	exprtigndata.set_description("Ignore data fields matching provided pattern");
+
+	group.add_entry(exprtigndata, d_ignoredata);
+
+	// Don't export data
+	Glib::OptionEntry exprtnum;
+	exprtnum.set_long_name("numeric-data");
+	exprtnum.set_description("Write user data as numeric values instead of strings");
+
+	group.add_entry(exprtnum, d_numericdata);
 
 	Glib::OptionContext context;
 

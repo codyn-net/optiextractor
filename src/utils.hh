@@ -18,6 +18,11 @@ namespace optiextractor
 			static std::vector<std::string>
 			DataColumns(jessevdk::db::sqlite::SQLite database);
 
+			static std::vector<std::string>
+			Columns(jessevdk::db::sqlite::SQLite  database,
+			        std::string const            &table,
+			        std::string const            &prefix = "");
+
 			static bool
 			FindBest(jessevdk::db::sqlite::SQLite  database,
 			         int                           iteration,

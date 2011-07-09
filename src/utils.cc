@@ -74,23 +74,43 @@ Utils::ActiveParameters(sqlite::SQLite database, size_t iteration, size_t soluti
 }
 
 vector<string>
-Utils::DataColumns(sqlite::SQLite database)
+Utils::Columns(sqlite::SQLite  database,
+               string const   &table,
+               string const   &prefix)
 {
-	sqlite::Row names = database("PRAGMA table_info(`data`)");
+	sqlite::Row names = database("PRAGMA table_info(`" + table + "`)");
 
 	vector<string> ret;
 
 	while (names && !names.Done())
 	{
-		string name = names.Get<string>(1);
-		names.Next();
+		String nm = names.Get<string>(1);
 
-		if (!String(name).StartsWith("_d_") || String(name).StartsWith("_d_velocity_"))
+		if (prefix == "" || nm.StartsWith(prefix))
+		{
+			ret.push_back(nm);
+		}
+
+		names.Next();
+	}
+
+	return ret;
+}
+
+vector<string>
+Utils::DataColumns(sqlite::SQLite database)
+{
+	vector<string> names = Utils::Columns(database, "data");
+	vector<string> ret;
+
+	for (vector<string>::iterator iter = names.begin(); iter != names.end(); ++iter)
+	{
+		if (!String(*iter).StartsWith("_d_") || String(*iter).StartsWith("_d_velocity_"))
 		{
 			continue;
 		}
 
-		ret.push_back(name);
+		ret.push_back(*iter);
 	}
 
 	return ret;
