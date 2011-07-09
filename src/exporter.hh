@@ -44,6 +44,10 @@ namespace optiextractor
 			void ExportParameterValues();
 			void ExportParameterActive();
 			void ExportFitness();
+			void ExportExtensions();
+			void ExportStagePSO();
+			void ExportGCPSO();
+			void ExportExtension(std::string const &name);
 
 			void CalculateTotalProgress();
 			void EmitProgress();

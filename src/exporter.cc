@@ -89,6 +89,7 @@ Exporter::Export()
 	ExportOptimizerSettings();
 	ExportParameters();
 	ExportJob();
+	ExportExtensions();
 	ExportIterations();
 	ExportSolutions();
 
@@ -183,8 +184,130 @@ Exporter::ExportJob()
 			Write("dispatcher", SafelyGetNullString(row, 2));
 			Write("priority", row.Get<double>(3));
 			Write("timeout", row.Get<double>(4));
+
+			Row ext = d_database("SELECT DISTINCT(`name`) FROM `extensions`");
+			vector<string> exts;
+
+			if (ext)
+			{
+				while (!ext.Done())
+				{
+					string e = SafelyGetNullString(ext, 0);
+
+					if (e != "")
+					{
+						exts.push_back(e);
+					}
+
+					ext.Next();
+				}
+			}
+
+			Write("extensions", exts);
 		}
 		End();
+	}
+}
+
+void
+Exporter::ExportGCPSO()
+{
+	vector<double> successes;
+	vector<double> failures;
+	vector<double> samplesize;
+
+	Row row = d_database("SELECT `successes`, `failures`, `sample_size` FROM `gcpso_samplesize` ORDER BY `iteration`");
+
+	while (row && !row.Done())
+	{
+		successes.push_back(row.Get<double>(0));
+		failures.push_back(row.Get<double>(1));
+		samplesize.push_back(row.Get<double>(2));
+
+		row.Next();
+	}
+
+	Begin("gcpso");
+	{
+		Write("successes", successes);
+		Write("failures", failures);
+		Write("sample_size", samplesize);
+	}
+	End();
+}
+
+void
+Exporter::ExportStagePSO()
+{
+	Row cnt = d_database("SELECT COUNT(*) FROM `stages`");
+	int num = cnt.Get<int>(0);
+
+	int dims[2] = {num, 1};
+	matvar_t **data = new matvar_t*[num * 2 + 1];
+	data[num * 2] = 0;
+
+	Row stage = d_database("SELECT `condition`, `expression` FROM `stages`");
+	int i = 0;
+
+	while (stage && !stage.Done())
+	{
+		string cond = SafelyGetNullString(stage, 0);
+		string expr = SafelyGetNullString(stage, 1);
+
+		data[i++] = Serialize("condition", cond);
+		data[i++] = Serialize("expression", expr);
+
+		stage.Next();
+	}
+
+	Write(Mat_VarCreate ("stages",
+	                     MAT_C_STRUCT,
+	                     MAT_T_STRUCT,
+	                     2,
+	                     dims,
+	                     data,
+	                     0));
+
+	delete[] data;
+}
+
+void
+Exporter::ExportExtension(string const &name)
+{
+	Row row = d_database("SELECT `name`, `value` FROM `" + name + "_settings`");
+
+	Begin(name + "_settings");
+	{
+		while (row && !row.Done())
+		{
+			Write(row.Get<string>(0), SafelyGetNullString(row, 1));
+			row.Next();
+		}
+	}
+	End();
+}
+
+void
+Exporter::ExportExtensions()
+{
+	Row ext = d_database("SELECT lower(`name`) FROM `extensions`");
+
+	while (ext && !ext.Done())
+	{
+		string e = SafelyGetNullString(ext, 0);
+
+		if (e == "stagepso")
+		{
+			ExportStagePSO();
+		}
+		else if (e == "gcpso")
+		{
+			ExportGCPSO();
+		}
+
+		ExportExtension(e);
+
+		ext.Next();
 	}
 }
 
@@ -437,6 +560,31 @@ Exporter::ExportMatrix(string const &table, string const &name, string const &pr
 	}
 
 	Row row(0, 0);
+	vector<string> cols = Utils::Columns(d_database, table, prefix);
+	string colstr;
+
+	if (additional != "")
+	{
+		dims[numdim - 1] += 1;
+		size = dims[0] * dims[1] * (numdim > 2 ? dims[2] : 1);
+
+		colstr = "`" + additional + "`";
+	}
+
+	for (vector<string>::iterator iter = cols.begin(); iter != cols.end(); ++iter)
+	{
+		if (*iter == "iteration" || *iter == "index")
+		{
+			continue;
+		}
+
+		if (colstr != "")
+		{
+			colstr += ", ";
+		}
+
+		colstr += "`" + *iter + "`";
+	}
 
 	if (d_isSystematic)
 	{
@@ -596,31 +744,6 @@ Exporter::ExportData()
 	size_t ct = 0;
 
 	Row row(0, 0);
-	vector<string> cols = Utils::Columns(d_database, table, prefix);
-	string colstr;
-
-	if (additional != "")
-	{
-		dims[numdim - 1] += 1;
-		size = dims[0] * dims[1] * (numdim > 2 ? dims[2] : 1);
-
-		colstr = "`" + additional + "`";
-	}
-
-	for (vector<string>::iterator iter = cols.begin(); iter != cols.end(); ++iter)
-	{
-		if (*iter == "iteration" || *iter == "index")
-		{
-			continue;
-		}
-
-		if (colstr != "")
-		{
-			colstr += ", ";
-		}
-
-		colstr += "`" + *iter + "`";
-	}
 
 	if (d_isSystematic)
 	{
