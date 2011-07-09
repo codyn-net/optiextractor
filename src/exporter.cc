@@ -2,6 +2,7 @@
 #include <jessevdk/base/string.hh>
 #include <iomanip>
 #include <glibmm.h>
+#include "utils.hh"
 
 using namespace optiextractor;
 using namespace std;
@@ -12,7 +13,8 @@ Exporter::Exporter(std::string const &filename, SQLite &database)
 :
 	d_filename(filename),
 	d_database(database),
-	d_isSystematic(false)
+	d_isSystematic(false),
+	d_numericdata(false)
 {
 	Row row = d_database("SELECT `optimizer` FROM job");
 
@@ -216,6 +218,18 @@ Exporter::ExportOptimizerSettings()
 }
 
 void
+Exporter::SetIgnoreData(string const &ignoredata)
+{
+	d_ignoredata = ignoredata;
+}
+
+void
+Exporter::SetNumericData(bool numeric)
+{
+	d_numericdata = numeric;
+}
+
+void
 Exporter::ExportIterations()
 {
 	Row row = d_database("SELECT `time` FROM iteration ORDER BY iteration");
@@ -246,7 +260,10 @@ Exporter::ExportIterations()
 }
 
 void
-Exporter::WriteNames(string const &name, jessevdk::db::sqlite::Row row, string const &prefix, string const &additional)
+Exporter::WriteNames(string const &name,
+                     vector<string> const &vals,
+                     string const &prefix,
+                     string const &additional)
 {
 	vector<string> names;
 
@@ -255,39 +272,83 @@ Exporter::WriteNames(string const &name, jessevdk::db::sqlite::Row row, string c
 		names.push_back(additional);
 	}
 
-	while (row && !row.Done())
+	for (vector<string>::const_iterator iter = vals.begin(); iter != vals.end(); ++iter)
 	{
-		String name = SafelyGetNullString(row, 1);
-
-		if (name.StartsWith(prefix))
+		if (String(*iter).StartsWith(prefix))
 		{
-			names.push_back(name.substr(prefix.length()));
+			names.push_back(iter->substr(prefix.length()));
 		}
-
-		row.Next();
 	}
 
-	int dims[2] = {1, names.size()};
-	matvar_t *data[names.size()];
+	Write(name, names);
+}
 
-	for (size_t i = 0; i < names.size(); ++i)
+matvar_t *
+Exporter::Serialize(string const &name, vector<double> const &s) const
+{
+	int dims[2] = {1, s.size()};
+	double *data = new double[s.size()];
+
+	for (size_t i = 0; i < s.size(); ++i)
 	{
-		int ddims[2] = {1, names[i].size()};
-		data[i] = Mat_VarCreate ("", MAT_C_CHAR, MAT_T_UTF8, 2, ddims, (void *)names[i].c_str(), 0);
+		data[i] = s[i];
 	}
 
-	Write(Mat_VarCreate (name.c_str(), MAT_C_CELL, MAT_T_CELL, 2, dims, data, 0));
+	matvar_t *ret = Mat_VarCreate (name.c_str(),
+	                               MAT_C_DOUBLE,
+	                               MAT_T_DOUBLE,
+	                               2,
+	                               dims,
+	                               data,
+	                               0);
+
+	delete[] data;
+	return ret;
+}
+
+matvar_t *
+Exporter::Serialize(string const &name, vector<string> const &s) const
+{
+	int dims[2] = {1, s.size()};
+	matvar_t **data = new matvar_t*[s.size()];
+
+	for (size_t i = 0; i < s.size(); ++i)
+	{
+		int ddims[2] = {1, s[i].size()};
+
+		data[i] = Mat_VarCreate ("",
+		                         MAT_C_CHAR,
+		                         MAT_T_UTF8,
+		                         2,
+		                         ddims,
+		                         (void *)s[i].c_str(), 0);
+	}
+
+	matvar_t *ret = Mat_VarCreate (name.c_str(),
+	                               MAT_C_CELL,
+	                               MAT_T_CELL,
+	                               2,
+	                               dims,
+	                               data,
+	                               0);
+
+	delete[] data;
+	return ret;
 }
 
 size_t
-Exporter::NumberOfColumns(string const &name)
+Exporter::NumberOfColumns(string const &name, string const &prefix)
 {
 	Row row = d_database("PRAGMA table_info(" + name + ")");
 	size_t cols = 0;
 
 	while (row && !row.Done())
 	{
-		++cols;
+		if (prefix == "" || String(row.Get<string>(1)).StartsWith(prefix))
+		{
+			++cols;
+		}
+
 		row.Next();
 	}
 
@@ -295,7 +356,7 @@ Exporter::NumberOfColumns(string const &name)
 }
 
 int *
-Exporter::MatrixDimensions(string const &name, int &numdim, size_t &size)
+Exporter::MatrixDimensions(string const &name, int &numdim, size_t &size, string const &prefix)
 {
 	if (d_isSystematic)
 	{
@@ -309,7 +370,7 @@ Exporter::MatrixDimensions(string const &name, int &numdim, size_t &size)
 		int *dims = new int[2];
 
 		dims[0] = row.Get<size_t>(0);
-		dims[1] = NumberOfColumns(name) - 2;
+		dims[1] = NumberOfColumns(name, prefix) - (prefix != "" ? 0 : 2);
 
 		numdim = 2;
 		size = dims[0] * dims[1];
@@ -329,7 +390,7 @@ Exporter::MatrixDimensions(string const &name, int &numdim, size_t &size)
 	row = d_database("SELECT COUNT(DISTINCT `index`) FROM " + name);
 	size_t solutions = row.Get<size_t>(0);
 
-	size_t vals = NumberOfColumns(name);
+	size_t vals = NumberOfColumns(name, prefix);
 
 	int *dims;
 
@@ -337,7 +398,7 @@ Exporter::MatrixDimensions(string const &name, int &numdim, size_t &size)
 
 	dims[0] = iterations;
 	dims[1] = solutions;
-	dims[2] = vals - 2;
+	dims[2] = vals - (prefix != "" ? 0 : 2);
 
 	numdim = 3;
 	size = dims[0] * dims[1] * dims[2];
@@ -362,13 +423,13 @@ Exporter::Normalize2D(size_t idx, int *dims)
 }
 
 void
-Exporter::ExportMatrix(string const &table, string const &name)
+Exporter::ExportMatrix(string const &table, string const &name, string const &prefix, string const &additional)
 {
 	int numdim;
 	size_t size;
 	int *dims;
 
-	dims = MatrixDimensions(table, numdim, size);
+	dims = MatrixDimensions(table, numdim, size, prefix);
 
 	if (!dims)
 	{
@@ -379,20 +440,20 @@ Exporter::ExportMatrix(string const &table, string const &name)
 
 	if (d_isSystematic)
 	{
-		row = d_database("SELECT * FROM " + table + " ORDER BY `index`");
+		row = d_database("SELECT " + colstr + " FROM " + table + " ORDER BY `index`");
 	}
 	else
 	{
-		row = d_database("SELECT * FROM " + table + " ORDER BY iteration, `index`");
+		row = d_database("SELECT " + colstr + " FROM " + table + " ORDER BY iteration, `index`");
 	}
 
 	double *data = new double[size];
 	size_t ct = 0;
-	size_t len = dims[numdim - 1] + 2;
+	size_t len = dims[numdim - 1];
 
 	while (row && !row.Done())
 	{
-		for (size_t i = 2; i < len; ++i)
+		for (size_t i = 0; i < len; ++i)
 		{
 			size_t idx = numdim == 3 ? Normalize3D(ct, dims) : Normalize2D(ct, dims);
 			data[idx] = row.Get<double>(i);
@@ -430,7 +491,7 @@ void
 Exporter::ExportParameterValues()
 {
 	WriteNames("parameter_names",
-	           d_database("PRAGMA table_info(parameter_values)"),
+	           Utils::Columns(d_database, "parameter_values"),
 	           "_p_");
 
 	ExportMatrix("parameter_values");
@@ -451,15 +512,59 @@ void
 Exporter::ExportFitness()
 {
 	// Write the fitness names
-	WriteNames("fitness_names", d_database("PRAGMA table_info(fitness)"), "_f_", "value");
+	WriteNames("fitness_names",
+	           Utils::Columns(d_database, "fitness"),
+	           "_f_",
+	           "value");
 
-	ExportMatrix("fitness", "fitness_values");
+	ExportMatrix("fitness", "fitness_values", "_f_", "value");
 }
 
 void
 Exporter::ExportData()
 {
-	WriteNames("data_names", d_database("PRAGMA table_info(data)"), "_d_");
+	vector<string> names;
+
+	names = Utils::Columns(d_database, "data", "_d_");
+
+	if (d_ignoredata != "")
+	{
+		GRegex *reg = g_regex_new (d_ignoredata.c_str(),
+		                           (GRegexCompileFlags)0,
+		                           (GRegexMatchFlags)0,
+		                           NULL);
+
+		if (reg)
+		{
+			vector<string> tmp;
+
+			for (vector<string>::iterator iter = names.begin(); iter != names.end(); ++iter)
+			{
+				if (!g_regex_match (reg,
+				                    (*iter).substr(3).c_str(),
+				                    (GRegexMatchFlags)0,
+				                    NULL))
+				{
+					tmp.push_back(*iter);
+				}
+			}
+
+			names = tmp;
+
+			g_regex_unref (reg);
+		}
+	}
+
+	vector<string> colcomb;
+
+	for (vector<string>::iterator iter = names.begin(); iter != names.end(); ++iter)
+	{
+		colcomb.push_back("`" + *iter + "`");
+	}
+
+	string colstr = String::Join(colcomb, ", ");
+
+	WriteNames("data_names", names, "_d_");
 
 	int numdim;
 	size_t size;
@@ -472,37 +577,76 @@ Exporter::ExportData()
 		return;
 	}
 
-	matvar_t **data = new matvar_t *[size];
-	size_t ct = 0;
+	/* We override this actually */
+	dims[numdim - 1] = names.size();
+	size = dims[0] * dims[1] * (numdim > 2 ? dims[2] : 1);
 
-	Row row(0, 0);
+	double *numdata = 0;
+	matvar_t **data = 0;
 
-	if (d_isSystematic)
+	if (d_numericdata)
 	{
-		row = d_database("SELECT * FROM data ORDER BY `index`");
+		numdata = new double[size];
 	}
 	else
 	{
-		row = d_database("SELECT * FROM data ORDER BY iteration, `index`");
+		data = new matvar_t *[size];
+	}
+
+	size_t ct = 0;
+
+	Row row(0, 0);
+	vector<string> cols = Utils::Columns(d_database, table, prefix);
+	string colstr;
+
+	if (additional != "")
+	{
+		dims[numdim - 1] += 1;
+		size = dims[0] * dims[1] * (numdim > 2 ? dims[2] : 1);
+
+		colstr = "`" + additional + "`";
+	}
+
+	for (vector<string>::iterator iter = cols.begin(); iter != cols.end(); ++iter)
+	{
+		if (*iter == "iteration" || *iter == "index")
+		{
+			continue;
+		}
+
+		if (colstr != "")
+		{
+			colstr += ", ";
+		}
+
+		colstr += "`" + *iter + "`";
+	}
+
+	if (d_isSystematic)
+	{
+		row = d_database("SELECT " + colstr + " FROM data ORDER BY `index`");
+	}
+	else
+	{
+		row = d_database("SELECT " + colstr + " FROM data ORDER BY iteration, `index`");
 	}
 
 	while (row && !row.Done())
 	{
-		for (size_t i = 2; i < row.Length(); ++i)
+		for (size_t i = 0; i < row.Length(); ++i)
 		{
-			string s = SafelyGetNullString(row, i);
-
-			int ddims[2] = {1, s.size()};
+			String s = SafelyGetNullString(row, i);
 
 			size_t idx = numdim == 3 ? Normalize3D(ct, dims) : Normalize2D(ct, dims);
 
-			data[idx] = Mat_VarCreate ("",
-			                           MAT_C_CHAR,
-			                           MAT_T_UTF8,
-			                           2,
-			                           ddims,
-			                           (void *)s.c_str(),
-			                           0);
+			if (d_numericdata)
+			{
+				numdata[idx] = (double)s;
+			}
+			else
+			{
+				data[idx] = Serialize("", s);
+			}
 
 			++ct;
 		}
@@ -513,16 +657,32 @@ Exporter::ExportData()
 		row.Next();
 	}
 
-	Write(Mat_VarCreate ("data_values",
-	                     MAT_C_CELL,
-	                     MAT_T_CELL,
-	                     numdim,
-	                     dims,
-	                     data,
-	                     0));
+	if (d_numericdata)
+	{
+		Write(Mat_VarCreate ("data_values",
+		                     MAT_C_DOUBLE,
+		                     MAT_T_DOUBLE,
+		                     numdim,
+		                     dims,
+		                     numdata,
+		                     0));
+
+		delete[] numdata;
+	}
+	else
+	{
+		Write(Mat_VarCreate ("data_values",
+		                     MAT_C_CELL,
+		                     MAT_T_CELL,
+		                     numdim,
+		                     dims,
+		                     data,
+		                     0));
+
+		delete[] data;
+	}
 
 	delete[] dims;
-	delete[] data;
 }
 
 void

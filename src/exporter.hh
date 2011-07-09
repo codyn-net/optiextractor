@@ -19,11 +19,16 @@ namespace optiextractor
 		bool d_isSystematic;
 		size_t d_total;
 		size_t d_ticker;
+		bool d_numericdata;
+		std::string d_ignoredata;
 
 		public:
 			Exporter(std::string const &filename, jessevdk::db::sqlite::SQLite &database);
 
 			void Export();
+
+			void SetIgnoreData(std::string const &regex);
+			void SetNumericData(bool numeric);
 
 			jessevdk::base::signals::Signal<double> OnProgress;
 		private:
@@ -48,12 +53,13 @@ namespace optiextractor
 
 			int *MatrixDimensions(std::string const &name,
 			                      int &numdim,
-			                      size_t &size);
+			                      size_t &size,
+			                      std::string const &prefix = "");
 
 			void ExportMatrix(std::string const &name);
-			void ExportMatrix(std::string const &table, std::string const &name);
+			void ExportMatrix(std::string const &table, std::string const &name, std::string const &prefix = "", std::string const &additional = "");
 
-			size_t NumberOfColumns(std::string const &name);
+			size_t NumberOfColumns(std::string const &name, std::string const &prefix = "");
 
 			void Begin(std::string const &name = "");
 			void End();
@@ -67,10 +73,15 @@ namespace optiextractor
 			matvar_t *Serialize(std::string const &nm, double v) const;
 			matvar_t *Serialize(std::string const &nm, size_t v) const;
 			matvar_t *Serialize(std::string const &nm, int v) const;
+			matvar_t *Serialize(std::string const &nm, std::vector<std::string> const &s) const;
+			matvar_t *Serialize(std::string const &nm, std::vector<double> const &s) const;
 
 			std::string NormalizeName(std::string const &name) const;
 
-			void WriteNames(std::string const &name, jessevdk::db::sqlite::Row row, std::string const &prefix, std::string const &additional = "");
+			void WriteNames(std::string const &name,
+			                std::vector<std::string> const &names,
+			                std::string const &prefix,
+			                std::string const &additional = "");
 
 			void ExportIterations();
 
