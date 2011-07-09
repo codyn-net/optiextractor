@@ -7,6 +7,9 @@
 #include <jessevdk/db/db.hh>
 #include <iomanip>
 
+#include <sys/ioctl.h>
+#include <stdio.h>
+
 using namespace optiextractor;
 using namespace std;
 using namespace jessevdk::os;
@@ -85,7 +88,23 @@ Application::RunExporter(int &argc, char **&argv)
 void
 Application::ExporterProgress(double progress)
 {
-	cout << setw(4) << static_cast<size_t>(progress * 100) << " %\r";
+	stringstream perc;
+	size_t pgs;
+
+	pgs = static_cast<size_t>(progress * 100);
+
+	if (d_previousProgress == pgs)
+	{
+		return;
+	}
+
+	perc << setw(5) << pgs << " %";
+
+	size_t totsize = d_progresssize - perc.str().size() - 2;
+	size_t numstars = static_cast<size_t>(totsize * progress);
+
+	cout << "[" << string(numstars, '*') << string(totsize - numstars, ' ') << "]" << perc.str() << "\r" << flush;
+	d_previousProgress = pgs;
 }
 
 void
@@ -116,10 +135,23 @@ Application::RunExporter(string const &filename, string const &outfile)
 
 	Exporter exporter(outfile, database);
 
+	cout << "[Exporting: " << outfile << "]" << endl;
+
+	cout << "\e[?25l";
+
+	struct winsize w;
+
+	ioctl(0, TIOCGWINSZ, &w);
+
+	d_progresssize = w.ws_col;
+	d_previousProgress = 100;
+
 	exporter.OnProgress.Add(*this, &Application::ExporterProgress);
 	exporter.Export();
 
 	cout << endl;
+
+	cout << "\e[?25h";
 }
 
 void

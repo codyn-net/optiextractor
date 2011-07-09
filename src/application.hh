@@ -23,6 +23,8 @@ namespace optiextractor
 		bool d_responded;
 		bool d_export;
 		Glib::ustring d_exportout;
+		size_t d_progresssize;
+		size_t d_previousProgress;
 
 		public:
 			/* Constructor/destructor */
