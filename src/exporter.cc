@@ -745,13 +745,23 @@ Exporter::ExportData()
 
 	Row row(0, 0);
 
-	if (d_isSystematic)
+	if (colcomb.size() > 0)
 	{
-		row = d_database("SELECT " + colstr + " FROM data ORDER BY `index`");
+		if (d_isSystematic)
+		{
+			row = d_database("SELECT " + colstr + " FROM data ORDER BY `index`");
+		}
+		else
+		{
+			row = d_database("SELECT " + colstr + " FROM data ORDER BY iteration, `index`");
+		}
 	}
 	else
 	{
-		row = d_database("SELECT " + colstr + " FROM data ORDER BY iteration, `index`");
+		Row cnt = d_database("SELECT COUNT(*) FROM data");
+
+		d_ticker += cnt.Get<size_t>(0);
+		EmitProgress();
 	}
 
 	while (row && !row.Done())
