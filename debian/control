@@ -7,7 +7,8 @@ Build-Depends: debhelper (>= 7),
                pkg-config,
                liboptimization2-dev (>= 2.3),
                libgtkmm-2.4-dev (>= 2.12),
-			   libmatio-dev
+			   libmatio-dev,
+               libtool
 Standards-Version: 3.8.0
 Section: apps
 Homepage: http://birg.epfl.ch
