@@ -237,6 +237,30 @@ Exporter::ExportGCPSO()
 }
 
 void
+Exporter::ExportDPSO()
+{
+	vector<double> failures;
+	vector<double> samplesize;
+
+	Row row = d_database("SELECT `failures`, `sample_size` FROM `dpso_samplesize` ORDER BY `iteration`");
+
+	while (row && !row.Done())
+	{
+		failures.push_back(row.Get<int>(0));
+		samplesize.push_back(row.Get<double>(1));
+
+		row.Next();
+	}
+
+	Begin("dpso");
+	{
+		Write("failures", failures);
+		Write("sample_size", samplesize);
+	}
+	End();
+}
+
+void
 Exporter::ExportStagePSO()
 {
 	Row cnt = d_database("SELECT COUNT(*) FROM `stages`");
@@ -303,6 +327,10 @@ Exporter::ExportExtensions()
 		else if (e == "gcpso")
 		{
 			ExportGCPSO();
+		}
+		else if (e == "dpso")
+		{
+			ExportDPSO();
 		}
 
 		ExportExtension(e);
