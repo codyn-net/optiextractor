@@ -1,3 +1,10 @@
+optiextractor (2.15-1) UNRELEASED; urgency=low
+
+  * New upstream release
+  * Add support for exporting and visualizing extensions
+
+ -- Jesse van den Kieboom <jvanden@biorobpc21.epfl.ch>  Tue, 05 Jun 2012 22:13:35 +0200
+
 optiextractor (2.14-1precise1) precise; urgency=low
 
   * precise release
