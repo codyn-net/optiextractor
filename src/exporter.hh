@@ -47,6 +47,7 @@ namespace optiextractor
 			void ExportExtensions();
 			void ExportStagePSO();
 			void ExportGCPSO();
+			void ExportDPSO();
 			void ExportExtension(std::string const &name);
 
 			void CalculateTotalProgress();
