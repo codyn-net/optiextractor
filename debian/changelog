@@ -1,3 +1,10 @@
+optiextractor (2.17-1) UNRELEASED; urgency=low
+
+  * New upstream release
+  * Link against new libjessevdk
+
+ -- Jesse van den Kieboom <jesse.vandenkieboom@epfl.ch>  Mon, 18 Mar 2013 09:45:17 +0100
+
 optiextractor (2.16-1) UNRELEASED; urgency=low
 
   * New upstream release
